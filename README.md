@@ -1,4 +1,4 @@
-# Intelliplan - Study Companion Application
+# Intelliplan - Your Smart Study Companion 
 
 A comprehensive Flask-based web application that helps students organize their study plans using advanced algorithms and data structures. Intelliplan combines modern web technologies with computer science algorithms to optimize study schedules and enhance learning efficiency.
 
