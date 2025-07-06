@@ -1,0 +1,344 @@
+{% extends "base.html" %}
+
+{% block title %}Login - Intelliplan{% endblock %}
+
+{% block content %}
+<div class="login-page">
+    <div class="auth-container">
+        <div class="card">            <div class="text-center mb-3">
+                <div class="logo-brain">
+                    <i class="fas fa-graduation-cap"></i>
+                </div>
+                <h2>Welcome Back</h2>
+                <p class="subtitle">Sign in to continue your study journey</p>
+            </div>
+            
+            <form method="POST" class="auth-form">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" class="form-control" required 
+                           autocomplete="username" autocapitalize="none" spellcheck="false"
+                           value="{{ request.form.username if request.form.username }}">
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <div class="password-input-container">
+                        <input type="password" id="password" name="password" class="form-control" required 
+                               autocomplete="current-password">
+                        <button type="button" class="password-toggle" onclick="togglePassword('password', this)">
+                            <i class="fas fa-eye-slash"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn btn-primary login-btn">
+                    <i class="fas fa-sign-in-alt"></i>
+                    Sign In
+                </button>
+            </form>
+            
+            <div class="auth-links">
+                <a href="{{ url_for('forgot_password') }}" class="forgot-link">
+                    <i class="fas fa-key"></i> Forgot Password?
+                </a>
+            </div>
+            
+            <div class="signup-link">
+                <p>Don't have an account? <a href="{{ url_for('register') }}">Sign Up</a></p>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+
+<style>
+:root {
+    --primary-color: #5a7eed;     
+    --secondary-color: #7494ec;    
+    --tertiary-color: #8aa9f7;    
+    --quaternary-color: #a0beff;   
+    --quinary-color: #d0e3ff;      
+    --senary-color: #4158a0;    
+    --septenary-color: #374a87;    
+    --octonary-color: #2f3e6e;    
+    --text-dark: #1e2a47;          
+    --text-light: #ffffff;
+}
+
+/* Login Page Specific Styles */
+.login-page {
+    min-height: 100vh;
+    width: 100vw;
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--tertiary-color) 100%);
+    padding: 2rem 1rem;
+    z-index: 1000;
+    overflow-y: auto;
+    padding-top: 5vh;
+}
+
+.auth-container {
+    width: 100%;
+    max-width: 400px;
+    z-index: 1001;
+    margin: 0 auto;
+}
+
+.auth-container .card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+    border-radius: 20px;
+}
+
+.logo-brain i {
+    font-size: 4rem;
+    color: var(--octonary-color);
+    animation: pulse 3s infinite ease-in-out;
+    margin-bottom: 1.5rem;
+}
+
+.subtitle {
+    color: var(--septenary-color);
+    margin-bottom: 1.5rem;
+}
+
+.auth-form .form-group {
+    margin-bottom: 1.5rem;
+}
+
+.auth-form .form-control {
+    padding: 14px;
+    border-radius: 8px;
+    border: 2px solid var(--tertiary-color);
+    transition: all 0.3s ease;
+    font-size: 16px; /* Prevents zoom on iOS */
+    background: white;
+}
+
+.auth-form .form-control:focus {
+    border-color: var(--quaternary-color);
+    box-shadow: 0 0 0 3px rgba(169, 193, 145, 0.1);
+    outline: none;
+}
+
+.password-input-container {
+    position: relative;
+}
+
+.password-input-container .form-control {
+    padding-right: 45px;
+}
+
+.password-toggle {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--quinary-color);
+    cursor: pointer;
+    font-size: 1.1rem;
+    padding: 5px;
+    min-height: 44px; /* Touch target */
+    min-width: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.password-toggle:hover {
+    color: var(--quaternary-color) !important;
+    transform: translateY(-50%) scale(1.1);
+}
+
+.login-btn {
+    width: 100%;
+    margin-top: 1rem;
+    background-color: var(--primary-color);
+    color: var(--text-light);
+    padding: 14px 24px;
+    font-size: 1.1rem;
+    min-height: 50px;
+}
+
+.login-btn:hover {
+    background-color: var(--senary-color);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.auth-links {
+    text-align: center;
+    margin-top: 1.5rem;
+}
+
+.forgot-link {
+    color: var(--septenary-color);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+}
+
+.forgot-link:hover {
+    color: var(--primary-color);
+    text-decoration: underline;
+}
+
+.signup-link {
+    text-align: center;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(0,0,0,0.1);
+}
+
+.signup-link a {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.signup-link a:hover {
+    text-decoration: underline;
+}
+
+@keyframes pulse {
+    0%, 100% { 
+        transform: scale(1); 
+    }
+    50% { 
+        transform: scale(1.05); 
+    }
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .login-page {
+        padding: 1rem;
+        min-height: 100vh;
+    }
+    
+    .auth-container {
+        max-width: 100%;
+    }
+    
+    .auth-container .card {
+        padding: 2rem 1.5rem;
+        margin: 0;
+    }
+    
+    .logo-brain i {
+        font-size: 3rem;
+    }
+    
+    .auth-form .form-control {
+        padding: 16px;
+        font-size: 16px;
+    }
+    
+    .login-btn {
+        padding: 16px 24px;
+        font-size: 1.1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .auth-container .card {
+        padding: 1.5rem 1rem;
+    }
+    
+    .logo-brain i {
+        font-size: 2.5rem;
+    }
+}
+</style>
+
+<script>
+function togglePassword(fieldId, button) {
+    const passwordField = document.getElementById(fieldId);
+    const icon = button.querySelector('i');
+    
+    if (passwordField.type === 'password') {
+        passwordField.type = 'text';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+    } else {
+        passwordField.type = 'password';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+    }
+}
+
+// Mobile-specific login enhancements
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('.auth-form');
+    const inputs = form.querySelectorAll('input');
+    
+    // Prevent zoom on iOS and improve mobile experience
+    inputs.forEach(input => {
+        // Ensure font size is at least 16px to prevent zoom
+        const currentFontSize = window.getComputedStyle(input).fontSize;
+        if (parseInt(currentFontSize) < 16) {
+            input.style.fontSize = '16px';
+        }
+        
+        // Trim whitespace on input to prevent login issues
+        input.addEventListener('blur', function() {
+            if (this.type !== 'password') {
+                this.value = this.value.trim();
+            }
+        });
+        
+        // Handle mobile viewport changes
+        input.addEventListener('focus', function() {
+            // Scroll to input on mobile
+            if (window.innerWidth <= 768) {
+                setTimeout(() => {
+                    this.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 300);
+            }
+        });
+    });
+    
+    // Form submission enhancement
+    form.addEventListener('submit', function(e) {
+        const username = document.getElementById('username');
+        const password = document.getElementById('password');
+        
+        // Trim username to prevent login issues
+        if (username) {
+            username.value = username.value.trim();
+        }
+        
+        // Basic validation
+        if (!username.value || !password.value) {
+            e.preventDefault();
+            alert('Please fill in all fields');
+            return false;
+        }
+        
+        // Show loading state
+        const submitBtn = form.querySelector('button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing In...';
+            
+            // Re-enable after 5 seconds in case of slow response
+            setTimeout(() => {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Sign In';
+            }, 5000);
+        }
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,1254 @@
+{% extends "base.html" %}
+
+{% block title %}{{ plan.name }} - Study Plan{% endblock %}
+
+{% block content %}
+<div class="plan-detail">
+    <div class="page-header mb-3">
+        <h1>{{ plan.name }}</h1>
+        <p style="color: var(--text-light);">Plan created on {{ plan.created_at.strftime('%B %d, %Y') }}</p>
+    </div>
+
+    <!-- Algorithm Options -->
+    <div class="card mb-3">
+        <h2><i class="fas fa-cogs"></i> Algorithm-Based Study Optimization</h2>
+        <p>Choose an algorithm to optimize your study approach:</p>
+        <div class="algorithm-grid grid grid-3">
+            <!-- Topic Dependency Map -->
+            <div class="algorithm-card card" style="background: linear-gradient(135deg, var(--secondary-color), var(--tertiary-color)); cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: stretch;" data-algorithm="topology" data-plan-id="{{ plan.id }}">
+                <div style="font-size: 3rem; text-align: center; margin-bottom: 1rem;"><i class="fas fa-chart-bar"></i></div>
+                <div style="flex: 1 1 auto; display: flex; flex-direction: column; justify-content: flex-end; width: 100%;">
+                    <h3>Topic Dependency Map</h3>
+                    <div style="flex: 1 1 auto;"></div>
+                    <button class="btn btn-primary" style="width: 100%; margin-top: 1rem;">
+                        Run
+                    </button>
+                </div>
+            </div>
+            <!-- Study Break Optimization -->
+            <div class="algorithm-card card" style="background: linear-gradient(135deg, var(--secondary-color), var(--tertiary-color)); cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: stretch;" data-algorithm="TSP" data-plan-id="{{ plan.id }}">
+                <div style="font-size: 3rem; text-align: center; margin-bottom: 1rem;"><i class="fas fa-bolt"></i></div>
+                <div style="flex: 1 1 auto; display: flex; flex-direction: column; justify-content: flex-end; width: 100%;">
+                    <h3>Study Break Optimization</h3>
+                    <div style="flex: 1 1 auto;"></div>
+                    <button class="btn btn-primary" style="width: 100%; margin-top: 1rem;">
+                        Run
+                    </button>
+                </div>
+            </div>
+            <!-- Revision Optimization -->
+            <div class="algorithm-card card" style="background: linear-gradient(135deg, var(--secondary-color), var(--tertiary-color)); cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: stretch;" data-algorithm="knapsack" data-plan-id="{{ plan.id }}">
+                <div style="font-size: 3rem; text-align: center; margin-bottom: 1rem;"><i class="fas fa-bullseye"></i></div>
+                <div style="flex: 1 1 auto; display: flex; flex-direction: column; justify-content: flex-end; width: 100%;">
+                    <h3>Revision Optimization</h3>
+                    <div style="flex: 1 1 auto;"></div>
+                    <button class="btn btn-primary" style="width: 100%; margin-top: 1rem;">
+                        Run
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Subjects in Plan -->
+    
+    <div class="card">
+        <h2><i class="fas fa-book"></i> Subjects in this Plan</h2>
+        {% if subjects %}
+        <div class="subjects-grid grid grid-2">
+            {% for subject in subjects %}
+            <div class="subject-card" style="padding: 1rem; background: var(--primary-color); border-radius: 8px;">
+                <h3 style="margin: 0 0 0.5rem 0; color: var(--text-light);">{{ subject.name }}</h3>
+                <p style="margin: 0; color: var(--quinary-color);">{{ subject.topics|length }} topics</p>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p>No subjects selected for this plan.</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Knapsack Modal (For Revision Planning) -->
+<div id="knapsackModal" class="modal">    <div class="modal-content knapsack-modal-content">
+        <span class="modal-close" onclick="closeModal('knapsackModal')">&times;</span>
+        <h2><i class="fas fa-redo-alt"></i> Revision Optimization</h2>
+
+        <div class="form-group">
+            <label for="timeBeforeExam">Time Left Before Exam (hours)</label>
+            <input type="number" id="timeBeforeExam" class="form-control" min="1" max="168" step="1" placeholder="Enter hours until exam">
+        </div>        <div id="loadingTopics" style="text-align: center; padding: 20px; display: none;">
+            <i class="fas fa-graduation-cap" style="font-size: 1.5rem; color: var(--primary-color);"></i> Loading completed topics for revision...
+        </div>
+        
+        <!-- Uncompleted topics will be loaded here -->
+        <div id="topicsContainer" class="topics-scroll-container"></div>
+          <div class="modal-actions">
+            <button id="runKnapsackButton" data-plan-id="{{ plan.id }}" class="btn btn-primary">
+                Run Optimization
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Results Modal -->
+<div id="resultsModal" class="modal">
+    <div class="modal-content results-modal-content" style="max-width: 95vw; max-height: 95vh; overflow: hidden; margin: 2.5vh auto; padding: 0;">
+        <span class="modal-close" onclick="closeModal('resultsModal')">&times;</span>
+        <div class="results-modal-header" style="padding: 1.5rem 2rem 1rem; border-bottom: 1px solid var(--secondary-color); background: var(--primary-color); border-radius: 12px 12px 0 0;">
+            <h2 id="resultsTitle" style="margin: 0; color: white; font-size: 1.5rem;">Algorithm Results</h2>
+        </div>
+        <div class="results-modal-body" style="padding: 1.5rem 2rem; overflow-y: auto; max-height: calc(95vh - 160px);">
+            <div id="resultsContent"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Global variables
+let currentPlanId = null;
+
+// Show modal functions
+function showKnapsackModal(planId) {
+    currentPlanId = planId;
+    const modal = document.getElementById('knapsackModal');
+    
+    // Show modal with proper class
+    modal.classList.add('show');
+    
+    // Show loading indicator
+    document.getElementById('loadingTopics').style.display = 'block';
+    document.getElementById('topicsContainer').innerHTML = '';
+    
+    // Fetch uncompleted topics for the plan
+    fetch(`/api/plan-topics/${planId}`)
+        .then(response => response.json())
+        .then(data => {            const topicsContainer = document.getElementById('topicsContainer');
+            // Filter out only completed topics for revision
+            const completedTopics = data.topics.filter(topic => topic.is_completed);
+            
+            if (completedTopics.length === 0) {
+                topicsContainer.innerHTML = '<div class="alert alert-warning"><i class="fas fa-exclamation-triangle"></i> No completed topics found for revision. Complete some topics first before running revision optimization.</div>';
+            } else {
+                // Create form elements for each completed topic for revision planning
+                let html = `
+                    <h3>Revision Settings for Completed Topics</h3>
+                    <p class="form-hint" style="color: var(--octonary-color);"><i class="fas fa-info-circle"></i> Set revision time and importance based on exam focus and teacher suggestions</p>
+                    <div class="topics-grid">
+                `;
+                  completedTopics.forEach(topic => {
+                    // For revision, suggest default values (40% of estimated hours for revision)
+                    const estimatedHours = topic.estimated_hours || 2.0;
+                    const suggestedRevisionHours = Math.max(0.5, estimatedHours * 0.4); // 40% of estimated time
+                    const importance = topic.importance || 3;
+                    
+                    html += `
+                        <div class="topic-setting-card" data-topic-id="${topic.id}">
+                            <h4>${topic.name} <span class="completion-badge">✓ Completed</span></h4>
+                            <div class="topic-setting-fields">
+                                <div class="field-group">
+                                    <label>Revision Hours</label>
+                                    <input type="number" class="topic-est-hours form-control" 
+                                           min="0.25" max="12" value="${suggestedRevisionHours.toFixed(1)}" step="0.25" 
+                                           placeholder="Revision time">
+                                    <small class="field-hint">How long will revision take?</small>
+                                </div>
+                                <div class="field-group">
+                                    <label>Exam Importance</label>
+                                    <input type="number" class="topic-importance form-control" 
+                                           min="1" max="5" value="${importance}" step="1" 
+                                           placeholder="1-5">
+                                    <small class="field-hint">Based on exam focus & teacher suggestions</small>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += '</div>';
+                topicsContainer.innerHTML = html;
+            }
+            
+            // Hide loading indicator
+            document.getElementById('loadingTopics').style.display = 'none';
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            document.getElementById('topicsContainer').innerHTML = 
+                '<div class="alert alert-danger">Error loading topics. Please try again.</div>';
+            document.getElementById('loadingTopics').style.display = 'none';        });
+}
+
+// Run algorithms with stored data from settings
+function runTopology(planId) {
+    // Direct GET request using stored prerequisites from topic settings
+    fetch(`/algorithm/topology/${planId}`, {
+        method: 'GET'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            alert('Error: ' + data.error);
+            return;
+        }
+        showResults(data);
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while running topological sort.');
+    });
+}
+
+function runTSP(planId) {
+    // Run Study Break Optimization directly (TSP algorithm finds optimal starting point automatically)
+    fetch(`/algorithm/TSP/${planId}`, {
+        method: 'GET'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            alert('Error: ' + data.error);
+            return;
+        }
+        showResults(data);
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while running Study Break Optimization.');
+    });
+}
+
+function runKnapsackWithTopicSettings(planId) {
+    const timeBeforeExam = parseFloat(document.getElementById('timeBeforeExam').value);
+    
+    if (!timeBeforeExam || timeBeforeExam <= 0) {
+        alert('Please enter a valid time before exam.');
+        return;
+    }
+    
+    // Collect individual topic settings
+    const topicCards = document.querySelectorAll('.topic-setting-card');
+    const topicSettings = [];
+    
+    topicCards.forEach(card => {
+        const topicId = card.dataset.topicId;
+        const estHoursInput = card.querySelector('.topic-est-hours');
+        const importanceInput = card.querySelector('.topic-importance');
+        
+        const estHours = parseFloat(estHoursInput.value);
+        const importance = parseInt(importanceInput.value);
+          // Validate inputs for revision
+        if (!estHours || estHours <= 0) {
+            alert(`Please enter valid revision hours for topic: ${card.querySelector('h4').textContent.replace(' ✓ Completed', '')}`);
+            throw new Error('Invalid revision hours');
+        }
+        
+        if (!importance || importance < 1 || importance > 5) {
+            alert(`Please enter valid exam importance (1-5) for topic: ${card.querySelector('h4').textContent.replace(' ✓ Completed', '')}`);
+            throw new Error('Invalid importance');
+        }
+        
+        topicSettings.push({
+            id: parseInt(topicId),
+            estHours: estHours,
+            importance: importance
+        });
+    });
+    
+    // Send time before exam along with individual topic settings
+    fetch(`/algorithm/knapsack/${planId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+            timeBeforeExam: timeBeforeExam,
+            topicSettings: topicSettings
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            alert('Error: ' + data.error);
+            return;
+        }
+        closeModal('knapsackModal');
+        showResults(data);
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        if (error.message !== 'Invalid est. hours' && error.message !== 'Invalid importance') {
+            alert('An error occurred while running knapsack optimization.');
+        }
+    });
+}
+
+// Create simple dependency order visualization
+// Create dependency tree visualization (like mindmap)
+function createDependencyTree(topics) {
+    if (!topics || topics.length === 0) {
+        return '<div class="empty-tree">No dependency data available</div>';
+    }
+    
+    // Build tree structure based on dependencies
+    const { subjectNode, topicNodes, edges } = buildDependencyTreeStructure(topics);
+    const dimensions = calculateTreePositions(subjectNode, topicNodes);
+    
+    // Create SVG tree visualization
+    const svgId = 'dependencyTreeSvg' + Date.now();
+    const viewBoxWidth = Math.max(800, dimensions.totalWidth);
+    const viewBoxHeight = Math.max(400, dimensions.totalHeight);
+    
+    let html = `
+        <div class="dependency-tree-wrapper" style="
+            width: 100%; 
+            min-height: 500px; 
+            background: linear-gradient(135deg, #f5f7fa, #eef2f7);
+            border-radius: 12px;
+            overflow: hidden; 
+            border: 1px solid #e1e8ed;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        ">
+            <svg id="${svgId}" width="100%" height="100%" viewBox="${-viewBoxWidth/2} ${-viewBoxHeight/2} ${viewBoxWidth} ${viewBoxHeight}" preserveAspectRatio="xMidYMid meet">
+                <defs>
+                    <linearGradient id="completedGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:#28a745;stop-opacity:1" />
+                        <stop offset="100%" style="stop-color:#4CAF50;stop-opacity:1" />
+                    </linearGradient>
+                    <linearGradient id="pendingGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:#ffc107;stop-opacity:1" />
+                        <stop offset="100%" style="stop-color:#F6B042;stop-opacity:1" />
+                    </linearGradient>
+                    <linearGradient id="subjectGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:var(--primary-color);stop-opacity:1" />
+                        <stop offset="100%" style="stop-color:var(--secondary-color);stop-opacity:1" />
+                    </linearGradient>
+                    <filter id="dropShadow" x="-20%" y="-20%" width="140%" height="140%">
+                        <feGaussianBlur in="SourceAlpha" stdDeviation="2" />
+                        <feOffset dx="1" dy="2" result="offsetblur" />
+                        <feComponentTransfer>
+                            <feFuncA type="linear" slope="0.2" />
+                        </feComponentTransfer>
+                        <feMerge>
+                            <feMergeNode />
+                            <feMergeNode in="SourceGraphic" />
+                        </feMerge>
+                    </filter>
+                </defs>
+    `;
+
+    // Draw edges (connecting lines)
+    html += '<g class="edges">';
+    edges.forEach(edge => {
+        html += `
+            <line x1="${edge.from.x}" y1="${edge.from.y + 25}"
+                  x2="${edge.to.x}" y2="${edge.to.y - 22}"
+                  stroke="#4a90e2" stroke-width="2" opacity="0.7" />
+        `;
+    });
+    html += '</g>';
+    
+    // Draw nodes
+    html += '<g class="nodes">';
+    
+    // Subject node
+    html += createSubjectNodeSVG(subjectNode);
+    
+    // Topic nodes
+    topicNodes.forEach(node => {
+        html += createTopicNodeSVG(node);
+    });
+    
+    html += '</g>';
+    html += '</svg></div>';
+    
+    return html;
+}
+
+// Build tree structure based on dependencies
+function buildDependencyTreeStructure(topics) {
+    // Get subject name
+    let subjectName = 'Subject';
+    const subjectElement = document.querySelector('.subject-card h3');
+    if (subjectElement) {
+        subjectName = subjectElement.textContent.trim();
+    }
+    
+    // Create subject node (root)
+    const subjectNode = {
+        id: 'subject',
+        name: subjectName,
+        type: 'subject',
+        level: 0,
+        children: [],
+        x: 0,
+        y: 0
+    };
+    
+    // Create topic nodes
+    const topicMap = new Map();
+    const topicNodes = topics.map((topic, index) => {
+        const node = {
+            id: topic.id,
+            name: topic.name,
+            isCompleted: topic.is_completed,
+            type: 'topic',
+            level: 1,
+            children: [],
+            parents: [],
+            dependencies: topic.dependencies ? JSON.parse(topic.dependencies) : [],
+            orderIndex: index
+        };
+        topicMap.set(topic.id, node);
+        return node;
+    });
+      // Build parent-child relationships based on immediate dependencies only
+    topicNodes.forEach(node => {
+        if (!node.dependencies || node.dependencies.length === 0) {
+            // No dependencies - connect to subject
+            subjectNode.children.push(node);
+            node.parents.push(subjectNode);
+            node.level = 1;
+        } else {
+            // Find immediate (direct) prerequisites only
+            const immediateDependencies = findImmediatePrerequisites(node.dependencies, topicMap);
+            
+            if (immediateDependencies.length === 0) {
+                // All dependencies are transitive, connect to subject
+                subjectNode.children.push(node);
+                node.parents.push(subjectNode);
+                node.level = 1;
+            } else {
+                // Connect only to immediate prerequisites
+                immediateDependencies.forEach(depId => {
+                    const parentNode = topicMap.get(depId);
+                    if (parentNode) {
+                        parentNode.children.push(node);
+                        node.parents.push(parentNode);
+                    }
+                });
+            }
+        }
+    });
+    
+    // Calculate levels based on dependency depth
+    calculateDependencyLevels(subjectNode);
+    
+    // Create edges for rendering
+    const edges = [];
+    function addEdges(node) {
+        node.children.forEach(child => {
+            edges.push({ from: node, to: child });
+            addEdges(child);
+        });
+    }
+    addEdges(subjectNode);
+      return { subjectNode, topicNodes, edges };
+}
+
+// Find immediate prerequisites (remove transitive dependencies)
+function findImmediatePrerequisites(dependencies, topicMap) {
+    if (!dependencies || dependencies.length <= 1) {
+        return dependencies || [];
+    }
+    
+    // For each dependency, check if it's reachable through another dependency
+    const immediateDeps = [];
+    
+    dependencies.forEach(depId => {
+        let isTransitive = false;
+        
+        // Check if this dependency is reachable through another dependency
+        dependencies.forEach(otherDepId => {
+            if (depId !== otherDepId) {
+                const otherDep = topicMap.get(otherDepId);
+                if (otherDep && canReachThroughDependencies(otherDep, depId, topicMap)) {
+                    isTransitive = true;
+                }
+            }
+        });
+        
+        // Only include if it's not reachable through another prerequisite
+        if (!isTransitive) {
+            immediateDeps.push(depId);
+        }
+    });
+    
+    return immediateDeps.length > 0 ? immediateDeps : dependencies;
+}
+
+// Check if target can be reached through dependencies (transitive check)
+function canReachThroughDependencies(startNode, targetId, topicMap, visited = new Set()) {
+    if (visited.has(startNode.id)) {
+        return false; // Avoid cycles
+    }
+    visited.add(startNode.id);
+    
+    if (!startNode.dependencies) {
+        return false;
+    }
+    
+    // Direct dependency
+    if (startNode.dependencies.includes(targetId)) {
+        return true;
+    }
+    
+    // Transitive dependency
+    for (const depId of startNode.dependencies) {
+        const depNode = topicMap.get(depId);
+        if (depNode && canReachThroughDependencies(depNode, targetId, topicMap, visited)) {
+            return true;
+        }
+    }
+    
+    return false;
+}
+
+// Calculate levels and positions for tree layout
+function calculateDependencyLevels(rootNode) {
+    const visited = new Set();
+    const queue = [{ node: rootNode, level: 0 }];
+    
+    while (queue.length > 0) {
+        const { node, level } = queue.shift();
+        
+        if (visited.has(node.id)) continue;
+        visited.add(node.id);
+        
+        node.level = Math.max(node.level, level);
+        
+        node.children.forEach(child => {
+            if (!visited.has(child.id)) {
+                queue.push({ node: child, level: level + 1 });
+            }
+        });
+    }
+}
+
+// Calculate positions for tree layout
+function calculateTreePositions(subjectNode, topicNodes) {
+    const nodeSpacing = 160; // Horizontal spacing (reduced from 200)
+    const levelHeight = 110; // Vertical spacing (reduced from 140)
+
+    // Group nodes by level
+    const levelGroups = new Map();
+    const allNodes = [subjectNode, ...topicNodes];
+    
+    allNodes.forEach(node => {
+        if (!levelGroups.has(node.level)) {
+            levelGroups.set(node.level, []);
+        }
+        levelGroups.get(node.level).push(node);
+    });
+    
+    // Position nodes level by level
+    const sortedLevels = Array.from(levelGroups.keys()).sort((a, b) => a - b);
+    
+    sortedLevels.forEach(level => {
+        const nodes = levelGroups.get(level);
+        const y = -160 + level * levelHeight; // Reduced vertical offset from -200
+
+        if (level === 0) {
+            // Subject node at center top
+            nodes[0].x = 0;
+            nodes[0].y = y;
+        } else {
+            // Topic nodes horizontally distributed
+            const totalWidth = (nodes.length - 1) * nodeSpacing;
+            const startX = -totalWidth / 2;
+            
+            nodes.forEach((node, index) => {
+                node.x = startX + index * nodeSpacing;
+                node.y = y;
+            });
+        }
+    });
+    
+    // Calculate total dimensions
+    const maxLevel = Math.max(...Array.from(levelGroups.keys()));
+    const maxNodesInLevel = Math.max(...Array.from(levelGroups.values()).map(nodes => nodes.length));
+    
+    return {
+        totalWidth: Math.max(800, maxNodesInLevel * nodeSpacing + 160), // Reduced from +200
+        totalHeight: Math.max(400, (maxLevel + 1) * levelHeight + 160)  // Reduced from +200
+    };
+}
+
+// Create subject node SVG
+function createSubjectNodeSVG(node) {
+    return `
+        <g class="tree-node subject" transform="translate(${node.x}, ${node.y})">
+            <rect x="-80" y="-25" width="160" height="50" rx="12"
+                  fill="url(#subjectGradient)" stroke="#ffffff" stroke-width="2"
+                  style="filter: url(#dropShadow); cursor: pointer;"/>
+            <text x="0" y="0" text-anchor="middle" dy="0.35em"
+                  style="font-family: 'Segoe UI', Arial, sans-serif; font-size: 14px; font-weight: 700; fill: white; letter-spacing: 0.5px;">
+                ${node.name}
+            </text>
+        </g>
+    `;
+}
+
+// Create topic node SVG
+function createTopicNodeSVG(node) {
+    const fillColor = node.isCompleted ? 'url(#completedGradient)' : 'url(#pendingGradient)';
+    const icon = node.isCompleted ? '✓' : '○';
+    
+    // Truncate long names (same as mindmap)
+    const maxLength = 20;
+    const displayName = node.name.length > maxLength ? 
+        node.name.substring(0, maxLength - 3) + '...' : 
+        node.name;
+    
+    return `
+        <g class="tree-node topic" transform="translate(${node.x}, ${node.y})">
+            <rect x="-60" y="-22" width="120" height="44" rx="10"
+                  fill="${fillColor}" stroke="#ffffff" stroke-width="1.5"
+                  style="filter: url(#dropShadow); cursor: pointer;"/>
+            <text x="0" y="-5" text-anchor="middle"
+                  style="font-family: 'Segoe UI', Arial, sans-serif; font-size: 11px; font-weight: 600; fill: #ffffff; letter-spacing: 0.3px;">
+                ${displayName}
+            </text>
+            <text x="0" y="12" text-anchor="middle"
+                  style="font-family: 'Segoe UI', Arial, sans-serif; font-size: 13px; font-weight: 700; fill: #ffffff;">
+                ${icon}
+            </text>
+        </g>
+    `;
+}
+
+function showResults(data) {
+    document.getElementById('resultsTitle').textContent = data.type;
+    
+    let content = '<div class="algorithm-results">';
+      // For TSP show actual total break time
+    if (data.type.includes('Study Break') && data.parameters) {
+        content += '<div style="margin-bottom: 1.5rem; padding: 1.25rem; background: var(--secondary-color); border-radius: 10px; border: 1px solid var(--tertiary-color);">';
+        
+        if (data.parameters.totalBreakTime !== undefined) {
+            // Show actual calculated total break time
+            content += `<p style="margin: 0; color: var(--text-light); font-weight: 600;"><i class="fas fa-clock" style="margin-right: 0.5rem; color: var(--text-light);"></i>Total Break Time: ${data.parameters.totalBreakTime} minutes</p>`;
+        } else {
+            // Fallback to average if totalBreakTime not available
+            content += `<p style="margin: 0; color: var(--text-light); font-weight: 600;"><i class="fas fa-clock" style="margin-right: 0.5rem; color: var(--text-light);"></i>Total Break Time: ${data.parameters.averageBreakTime} minutes</p>`;
+        }
+        
+        content += '</div>';
+    }
+      if (data.result && data.result.length > 0) {        // Special formatting for TSP (arrow format)
+        if (data.type.includes('Study Break')) {
+            content += '<div class="TSP-results">';
+              // Create arrow chain format with breaks using actual break times from backend
+            content += '<div class="arrow-chain">';
+            let chainText = '';
+            data.result.forEach((topic, index) => {
+                chainText += topic.name;
+                // Add break time between topics (except after the last one)
+                if (index < data.result.length - 1) {
+                    // Use actual individual break times from backend if available
+                    let breakTime = 5; // default fallback
+                    if (data.parameters && data.parameters.individualBreakTimes && index < data.parameters.individualBreakTimes.length) {
+                        breakTime = data.parameters.individualBreakTimes[index];
+                    }
+                    chainText += ` → Break (${breakTime} min) → `;
+                }
+            });
+            content += chainText;
+            content += '</div>';// Show detailed breakdown with only study sessions (no break steps, no duration)
+            content += '<div style="margin-top: 0;">';
+            data.result.forEach((topic, index) => {
+                // Only study sessions (no break items, no duration in detailed breakdown)
+                content += `
+                    <div class="result-item">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <h4 style="margin: 0; color: var(--text-light); font-size: 1.1rem;">Step ${index + 1}: ${topic.name}</h4>
+                            </div>                            <div style="text-align: right;">
+                                ${topic.is_completed ? 
+                                    '<span style="color: white; font-weight: bold;"><i class="fas fa-check"></i> Completed</span>' : 
+                                    '<span style="color: var(--yellow); font-weight: bold;"><i class="fas fa-clock"></i> Pending</span>'
+                                }
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            content += '</div>';} else if (data.type.includes('Dependency')) {
+            // Create tree visualization for dependency output
+            content += '<div class="dependency-tree-container">';
+            content += createDependencyTree(data.result);
+            content += '</div>';
+        } else {
+            // Regular numbered format for other algorithms (Revision)
+            content += '<div class="results-list">';
+            data.result.forEach((topic, index) => {
+                // For revision optimization (knapsack), show hours and importance
+                let detailsHTML = '';
+                if (data.type.includes('Revision')) {
+                    detailsHTML = `
+                        <p style="margin: 0.5rem 0 0 0; font-size: 0.9rem; color: var(--quinary-color);">
+                            <i class="fas fa-clock" style="color: var(--quaternary-color); margin-right: 0.25rem;"></i>Est. Time: ${topic.estimated_hours}h | 
+                            <i class="fas fa-exclamation-circle" style="color: var(--quaternary-color); margin-right: 0.25rem; margin-left: 0.5rem;"></i>Importance: ${topic.importance}/5
+                        </p>
+                    `;
+                }
+                  content += `
+                    <div class="result-item">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <h4 style="margin: 0; color: white; font-size: 1.1rem;">${index + 1}. ${topic.name}</h4>
+                                ${detailsHTML}
+                            </div><div style="text-align: right;">
+                                ${topic.is_completed ? 
+                                    '<span style="color: white; font-weight: bold; font-size: 0.9rem;"><i class="fas fa-check-circle" style="margin-right: 0.5rem;"></i>Completed</span>' : 
+                                    '<span style="color: var(--yellow); font-weight: bold; font-size: 0.9rem;"><i class="fas fa-clock" style="margin-right: 0.5rem;"></i>Pending</span>'
+                                }
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            content += '</div>';
+        }
+    } else {
+        content += '<p>No results to display. Make sure your plan has topics with proper data.</p>';
+    }
+      content += '</div>';
+    document.getElementById('resultsContent').innerHTML = content;
+      // Scroll to top of results content
+    document.getElementById('resultsContent').scrollTop = 0;
+    
+    const resultsModal = document.getElementById('resultsModal');
+    // Show modal with proper class
+    resultsModal.classList.add('show');
+}
+
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    modal.classList.remove('show');
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+    const knapsackModal = document.getElementById('knapsackModal');
+    const resultsModal = document.getElementById('resultsModal');
+    
+    if (event.target === knapsackModal) {
+        knapsackModal.classList.remove('show');
+    }
+    if (event.target === resultsModal) {
+        resultsModal.classList.remove('show');
+    }
+}
+
+// Add event listeners when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    // Algorithm card click handlers
+    document.querySelectorAll('.algorithm-card[data-algorithm]').forEach(card => {
+        card.addEventListener('click', function() {
+            const algorithm = this.dataset.algorithm;
+            const planId = parseInt(this.dataset.planId);
+            
+            switch (algorithm) {
+                case 'topology':
+                    runTopology(planId);
+                    break;                case 'TSP':
+                    runTSP(planId);
+                    break;
+                case 'knapsack':
+                    showKnapsackModal(planId);
+                    break;
+            }
+        });
+    });
+    
+    // Knapsack modal button handler
+    const knapsackButton = document.getElementById('runKnapsackButton');    if (knapsackButton) {
+        knapsackButton.addEventListener('click', function() {
+            const planId = parseInt(this.dataset.planId);
+            runKnapsackWithTopicSettings(planId);
+        });
+    }
+});
+</script>
+
+<style>
+.algorithm-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.algorithm-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
+.result-item {
+    transition: transform 0.2s ease;
+}
+
+.result-item:hover {
+    transform: translateX(5px);
+}
+.algorithm-card h3 {
+    color: var(--text-light);
+
+}
+
+/* Enhanced modal styling for better positioning and centering */
+.modal {
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.5);
+    display: none; /* Default hidden */
+    align-items: center;
+    justify-content: center;
+}
+
+.modal.show {
+    display: flex !important; /* Only show when .show class is added */
+}
+.page-header h1 {
+    color: var(--text-light);
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: 2vh 2vw !important;  /* Slightly reduced margins for more space */
+    padding: 0;
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    position: relative;
+    max-width: 90vw;  /* Increased from 85vw for more width */
+    max-height: 85vh;  /* Increased from 80vh for more height */
+    width: 900px;  /* Increased from 800px */
+    display: flex;
+    flex-direction: column;
+    transform: none !important;
+}
+
+.knapsack-modal-content {
+    height: 80vh;  /* Increased from 75vh for more content space */
+}
+
+.knapsack-modal-content h2 {
+    margin: 0 0 20px 0;
+    padding: 30px 30px 0 30px;  /* Increased padding for better spacing */
+    color: var(--octonary-color);
+}
+
+.knapsack-modal-content .form-group {
+    padding: 0 30px;  /* Increased side padding */
+    margin-bottom: 20px;
+}
+
+.knapsack-modal-content p {
+    padding: 0 30px;  /* Add padding to description paragraph */
+    margin-bottom: 1.5rem;
+}
+
+.topics-scroll-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 30px;  /* Increased side padding */
+    margin-bottom: 20px;
+    max-height: calc(85vh - 200px);  /* Adjusted for reduced button area */
+}
+
+.modal-actions {
+    padding: 20px 30px;  /* Reduced top/bottom padding from 30px to 20px */
+    border-top: 1px solid var(--secondary-color);
+    background: var(--primary-color);
+    border-radius: 0 0 12px 12px;
+}
+
+.modal-close {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    color: #aaa;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    z-index: 1001;
+}
+
+.modal-close:hover,
+.modal-close:focus {
+    color: #000;
+    text-decoration: none;
+}
+
+/* Custom scrollbar for topics container */
+.topics-scroll-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+.topics-scroll-container::-webkit-scrollbar-track {
+    background: var(--secondary-color);
+    border-radius: 4px;
+}
+
+.topics-scroll-container::-webkit-scrollbar-thumb {
+    background: var(--quaternary-color);
+    border-radius: 4px;
+}
+
+.topics-scroll-container::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-color);
+}
+
+/* Custom scrollbar for results content */
+#resultsContent::-webkit-scrollbar {
+    width: 8px;
+}
+
+#resultsContent::-webkit-scrollbar-track {
+    background: var(--secondary-color);
+    border-radius: 4px;
+}
+
+#resultsContent::-webkit-scrollbar-thumb {
+    background: var(--quaternary-color);
+    border-radius: 4px;
+}
+
+#resultsContent::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-color);
+}
+
+/* Topic settings styling */
+.topics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.topic-setting-card {
+    background: var(--primary-color);
+    border-radius: 10px;
+    padding: 15px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.topic-setting-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+}
+
+.topic-setting-card h4 {
+    margin: 0 0 12px 0;
+    color: white;
+    font-size: 1rem;
+    font-weight: 600;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    padding-bottom: 8px;
+}
+
+.topic-setting-fields {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.field-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.field-group label {
+    font-size: 0.85rem;
+    margin-bottom: 4px;
+    color: var(--quinary-color);
+}
+
+.form-hint {
+    font-size: 0.9rem;
+    color: var(--quinary-color);
+    margin: 5px 0 15px 0;
+}
+
+/* TSP arrow chain styling */
+.TSP-results {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.TSP-results .arrow-chain {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: white;
+    font-weight: 600;
+    letter-spacing: 1px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+/* Responsive modal sizing */
+/* Topic settings styling */
+.topics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 15px;
+    margin: 15px 0;
+}
+
+.topic-setting-card {
+    background: var(--primary-color);
+    border-radius: 8px;
+    padding: 15px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.topic-setting-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.topic-setting-card h4 {
+    margin: 0 0 12px 0;
+    color: white;
+    font-weight: 600;
+    border-bottom: 1px solid var(--quaternary-color);
+    padding-bottom: 8px;
+}
+
+.topic-setting-fields {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.field-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.field-group label {
+    font-size: 0.85rem;
+    color: var(--quinary-color);
+    margin-bottom: 4px;
+}
+
+.field-group input {
+    padding: 6px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--quaternary-color);
+}
+
+@media (max-width: 768px) {
+    .modal-content {
+        max-width: 95vw !important;
+        width: 95vw !important;
+        margin: 2vh 2.5vw !important;
+    }    .knapsack-modal-content {
+        height: 90vh !important;
+    }
+    
+    .topics-scroll-container {
+        max-height: calc(90vh - 200px) !important;
+        padding: 0 20px !important;  /* Reduce padding on mobile */
+    }
+    
+    .knapsack-modal-content h2 {
+        padding: 20px 20px 0 20px !important;  /* Reduce padding on mobile */
+    }
+    
+    .knapsack-modal-content .form-group {
+        padding: 0 20px !important;  /* Reduce padding on mobile */
+    }
+    
+    .knapsack-modal-content p {
+        padding: 0 20px !important;  /* Reduce padding on mobile */
+    }
+      .modal-actions {
+        padding: 15px 20px !important;  /* Even more compact on mobile */
+    }
+    
+    .results-modal-content {
+        max-width: 95vw !important;
+        width: 95vw !important;
+        margin: 2.5vh auto !important;
+    }
+    
+    .results-modal-body {
+        padding: 1rem 1.5rem !important;
+        max-height: calc(95vh - 140px) !important;
+    }
+    
+    .results-modal-header {
+        padding: 1rem 1.5rem 0.75rem !important;
+    }
+    
+    .topics-grid {
+        grid-template-columns: 1fr !important;
+        gap: 10px;
+    }
+    
+    .topic-setting-card {
+        padding: 12px;
+    }
+    
+    .modal-close {
+        top: 10px;
+        right: 15px;
+        font-size: 24px;
+    }
+}
+
+/* Results Modal Specific Styling */
+.results-modal-content {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    position: relative;
+    width: 90%;
+    max-width: 900px;
+    margin: 5vh auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.results-modal-content .modal-close {
+    position: absolute;
+    top: 1rem;
+    right: 1.5rem;
+    color: var(--quinary-color);
+    font-size: 1.75rem;
+    font-weight: bold;
+    cursor: pointer;
+    z-index: 1001;
+    transition: color 0.2s ease;
+}
+
+.results-modal-content .modal-close:hover {
+    color: var(--error);
+}
+
+/* Algorithm results content styling */
+.algorithm-results {
+    margin: 0;
+    padding: 0;
+}
+
+.algorithm-results .result-item {
+    margin-bottom: 1rem !important;
+    padding: 1.25rem !important;
+    background: var(--primary-color) !important;
+    border-radius: 10px !important;
+    border-left: 4px solid var(--quaternary-color) !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transition: transform 0.2s ease;
+}
+
+.algorithm-results .result-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+}
+
+.algorithm-results .arrow-chain {
+    margin-bottom: 1.5rem !important;
+    padding: 1.5rem !important;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)) !important;
+    border-radius: 12px !important;
+    text-align: center;
+    font-size: 1.2rem;
+    line-height: 2;
+    color: white !important;
+    font-weight: 600;
+    letter-spacing: 1px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+/* TSP-specific styling */
+.TSP-results {
+    margin-bottom: 1.5rem !important;
+}
+
+/* Fix break time display styling */
+.algorithm-results div[style*="margin-bottom: 1rem"] {
+    margin-bottom: 1.5rem !important;
+    padding: 1.25rem !important;
+    background: var(--secondary-color) !important;
+    border-radius: 10px !important;
+    border: 1px solid var(--tertiary-color);
+}
+
+/* Dependency Tree Styling */
+.dependency-tree-container {
+    margin: 1rem 0;
+    width: 100%;
+}
+
+.dependency-tree-wrapper {
+    position: relative;
+    width: 100%;
+    min-height: 500px;
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    border-radius: 12px;
+    overflow: hidden;
+    border: 2px solid var(--tertiary-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.tree-node {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.tree-node:hover {
+    opacity: 0.8;
+}
+
+.empty-tree {
+    text-align: center;
+    padding: 3rem;
+    color: var(--quinary-color);
+    font-style: italic;
+    font-size: 1.1rem;
+}
+
+/* Responsive design for dependency tree */
+@media (max-width: 768px) {
+    .dependency-tree-wrapper {
+        min-height: 400px;
+    }
+    
+    .tree-node text {
+        font-size: 11px !important;
+    }
+}
+
+/* Revision modal specific styles */
+.completion-badge {
+    background: white;
+    color: var(--text-dark);
+    padding: 0.2rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    margin-left: 0.5rem;
+    border: 1px solid var(--border-color);
+}
+
+.field-hint {
+    color: var(--quinary-color);
+    font-size: 0.8rem;
+    margin-top: 0.25rem;
+    display: block;
+}
+</style>
+{% endblock %}

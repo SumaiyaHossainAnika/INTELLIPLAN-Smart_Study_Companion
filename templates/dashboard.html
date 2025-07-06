@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Intelliplan{% endblock %}
+
+{% block content %}
+<div class="dashboard">    <div class="welcome-section mb-3">
+        <h1>Welcome back, {{ current_user.username }}!</h1>
+        <p style="font-size: 1.2rem; color: var(--text-light);">Ready to optimize your study session today?</p>
+    </div>    <!-- Statistics Container -->
+    <div class="stats-container">
+        <div class="grid grid-3 mb-3">
+            <div class="stat-card">
+                <div class="stat-number">{{ total_hours }}</div>
+                <div class="stat-label">Study Hours</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ completed_topics }}</div>
+                <div class="stat-label">Topics Completed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ total_sessions }}</div>
+                <div class="stat-label">Pomodoro Sessions</div>
+            </div>
+        </div>
+    </div>    <!-- Quick Actions -->
+    <div class="actions-container">
+        <h2>Quick Actions</h2>        <div class="grid grid-3">            <a href="{{ url_for('study_plans') }}" class="btn btn-primary">
+                <i class="fas fa-book"></i> Create Study Plan
+            </a>            <a href="{{ url_for('pomodoro') }}" class="btn btn-primary">
+                <i class="fas fa-clock"></i> Start Pomodoro
+            </a>            <a href="{{ url_for('groups') }}" class="btn btn-primary">
+                <i class="fas fa-users"></i> Study Groups
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+.dashboard {
+    animation: fadeIn 0.6s ease-out;
+}
+
+.welcome-section h1 {
+    color: var(--text-light);
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.badge {
+    display: inline-block;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+/* Simple White Container */
+.stats-container {
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    border: 1px solid rgba(0,0,0,0.05);
+}
+.stat-number {
+    color:white;
+}
+
+/* Actions White Container */
+.actions-container {
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    border: 1px solid rgba(0,0,0,0.05);
+}
+</style>
+{% endblock %}

@@ -1,0 +1,349 @@
+{% extends "base.html" %}
+
+{% block title %}Register - Intelliplan{% endblock %}
+
+{% block content %}
+<div class="register-page">
+    <div class="auth-container">
+        <div class="card">
+            <div class="text-center mb-3">
+                <div class="logo-brain">
+                    <i class="fa-solid fa-user-plus"></i>
+                </div>
+                <h2>Create Account</h2>
+                <p class="subtitle">Join Intelliplan and start your smart study journey</p>
+            </div>
+            
+            <form method="POST" class="auth-form">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" class="form-control" required 
+                           autocomplete="username" autocapitalize="none" spellcheck="false"
+                           value="{{ request.form.username if request.form.username }}" 
+                           placeholder="Choose a username">
+                </div>
+                
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" class="form-control" required 
+                           autocomplete="email"
+                           value="{{ request.form.email if request.form.email }}" 
+                           placeholder="Enter your email address">
+                </div>
+              <div class="form-group">
+                <label for="password">Password</label>
+                <div class="password-input-container" style="position: relative;">
+                    <input type="password" id="password" name="password" class="form-control" required 
+                           placeholder="Create a strong password" style="padding-right: 45px;">
+                    <button type="button" class="password-toggle" onclick="togglePassword('password', this)" 
+                            style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); 
+                                   background: none; border: none; color: var(--quinary-color); 
+                                   cursor: pointer; font-size: 1.1rem; padding: 5px;">
+                        <i class="fas fa-eye-slash"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="confirm_password">Confirm Password</label>
+                <div class="password-input-container" style="position: relative;">
+                    <input type="password" id="confirm_password" name="confirm_password" class="form-control" required 
+                           placeholder="Confirm your password" style="padding-right: 45px;">
+                    <button type="button" class="password-toggle" onclick="togglePassword('confirm_password', this)" 
+                            style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); 
+                                   background: none; border: none; color: var(--quinary-color); 
+                                   cursor: pointer; font-size: 1.1rem; padding: 5px;">
+                        <i class="fas fa-eye-slash"></i>
+                    </button>
+                </div>
+            </div>            
+            <button type="submit" class="btn btn-primary register-btn">
+                <i class="fas fa-user-plus"></i>
+                Create Account
+            </button>
+        </form>
+        
+        <div class="login-link">
+            <p>Already have an account? <a href="{{ url_for('login') }}">Sign In</a></p>
+        </div>
+    </div>
+</div>
+</div>
+
+<style>
+/* Register Page Styles - Same as Login for consistency */
+:root {
+    --primary-color: #5a7eed;     
+    --secondary-color: #7494ec;    
+    --tertiary-color: #8aa9f7;    
+    --quaternary-color: #a0beff;   
+    --quinary-color: #d0e3ff;      
+    --senary-color: #4158a0;    
+    --septenary-color: #374a87;    
+    --octonary-color: #2f3e6e;    
+    --text-dark: #1e2a47;          
+    --text-light: #ffffff;
+}
+
+.register-page {
+    min-height: 100vh;
+    width: 100vw;
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--tertiary-color) 100%);
+    padding: 2rem 1rem;
+    z-index: 1000;
+    overflow-y: auto;
+    padding-top: 5vh;
+}
+
+.auth-container {
+    width: 100%;
+    max-width: 400px;
+    z-index: 1001;
+    margin: 0 auto;
+}
+
+.auth-container .card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+    border-radius: 20px;
+}
+
+.logo-brain i {
+    font-size: 4rem;
+    color: var(--octonary-color);
+    animation: pulse 3s infinite ease-in-out;
+    margin-bottom: 1.5rem;
+}
+
+.subtitle {
+    color: var(--septenary-color);
+    margin-bottom: 1.5rem;
+}
+
+.auth-form .form-group {
+    margin-bottom: 1.5rem;
+}
+
+.auth-form .form-control {
+    padding: 14px;
+    border-radius: 8px;
+    border: 2px solid var(--tertiary-color);
+    transition: all 0.3s ease;
+    font-size: 16px;
+    background: white;
+}
+
+.auth-form .form-control:focus {
+    border-color: var(--quaternary-color);
+    box-shadow: 0 0 0 3px rgba(169, 193, 145, 0.1);
+    outline: none;
+}
+
+.password-input-container {
+    position: relative;
+}
+
+.password-input-container .form-control {
+    padding-right: 45px;
+}
+
+.password-toggle {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--quinary-color);
+    cursor: pointer;
+    font-size: 1.1rem;
+    padding: 5px;
+    min-height: 44px;
+    min-width: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.password-toggle:hover {
+    color: var(--quaternary-color) !important;
+    transform: translateY(-50%) scale(1.1);
+}
+
+.register-btn {
+    width: 100%;
+    margin-top: 1rem;
+    background-color: var(--primary-color);
+    color: var(--text-light);
+    padding: 14px 24px;
+    font-size: 1.1rem;
+    min-height: 50px;
+}
+
+.register-btn:hover {
+    background-color: var(--senary-color);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.login-link {
+    text-align: center;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(0,0,0,0.1);
+}
+
+.login-link a {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.login-link a:hover {
+    text-decoration: underline;
+}
+
+@keyframes pulse {
+    0%, 100% { 
+        transform: scale(1); 
+    }
+    50% { 
+        transform: scale(1.05); 
+    }
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .register-page {
+        padding: 1rem;
+        min-height: 100vh;
+    }
+    
+    .auth-container {
+        max-width: 100%;
+    }
+    
+    .auth-container .card {
+        padding: 2rem 1.5rem;
+        margin: 0;
+    }
+    
+    .logo-brain i {
+        font-size: 3rem;
+    }
+    
+    .auth-form .form-control {
+        padding: 16px;
+        font-size: 16px;
+    }
+    
+    .register-btn {
+        padding: 16px 24px;
+        font-size: 1.1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .auth-container .card {
+        padding: 1.5rem 1rem;
+    }
+    
+    .logo-brain i {
+        font-size: 2.5rem;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('.auth-form');
+    const inputs = form.querySelectorAll('input');
+    
+    // Mobile improvements
+    inputs.forEach(input => {
+        // Prevent zoom on iOS
+        const currentFontSize = window.getComputedStyle(input).fontSize;
+        if (parseInt(currentFontSize) < 16) {
+            input.style.fontSize = '16px';
+        }
+        
+        // Trim whitespace except for password fields
+        input.addEventListener('blur', function() {
+            if (this.type !== 'password') {
+                this.value = this.value.trim();
+            }
+        });
+        
+        // Mobile viewport handling
+        input.addEventListener('focus', function() {
+            if (window.innerWidth <= 768) {
+                setTimeout(() => {
+                    this.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 300);
+            }
+        });
+    });
+    
+    // Form submission
+    form.addEventListener('submit', function(e) {
+        const username = document.getElementById('username');
+        const email = document.getElementById('email');
+        const password = document.getElementById('password').value;
+        const confirmPassword = document.getElementById('confirm_password').value;
+        
+        // Trim username and email
+        if (username) username.value = username.value.trim();
+        if (email) email.value = email.value.trim();
+        
+        // Password validation
+        if (password !== confirmPassword) {
+            e.preventDefault();
+            alert('Passwords do not match!');
+            return;
+        }
+        
+        if (password.length < 6) {
+            e.preventDefault();
+            alert('Password must be at least 6 characters long!');
+            return;
+        }
+        
+        // Show loading state
+        const submitBtn = document.querySelector('button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Account...';
+            submitBtn.disabled = true;
+            
+            // Re-enable after 10 seconds in case of slow response
+            setTimeout(() => {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-user-plus"></i> Create Account';
+            }, 10000);
+        }
+    });
+});
+
+function togglePassword(fieldId, button) {
+    const passwordField = document.getElementById(fieldId);
+    const icon = button.querySelector('i');
+    
+    if (passwordField.type === 'password') {
+        passwordField.type = 'text';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+    } else {
+        passwordField.type = 'password';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+    }
+}
+</script>
+{% endblock %}

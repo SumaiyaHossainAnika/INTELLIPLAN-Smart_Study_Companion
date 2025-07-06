@@ -1,0 +1,2765 @@
+{% extends "base.html" %}
+{% block title %}Settings - Intelliplan{% endblock %}
+
+{% block content %}
+<div class="settings-content">
+    <div class="settings-title-section">
+        <h1><i class="fas fa-cog"></i> Settings</h1>
+        <p>Customize and manage your Intelliplan experience</p>
+    </div>
+
+    <!-- Main Settings Options -->
+    <div class="settings-container">
+        <div class="settings-grid" id="main-options" style="display: flex;">
+        <div class="settings-option" onclick="showSection('subject-management')">
+            <div class="option-icon">
+                <i class="fas fa-book"></i>
+            </div>
+            <div class="option-content">
+                <h3>Subject Management</h3>
+                <p>Organize subjects and topics with ease</p>
+                <div class="option-arrow">
+                    <i class="fas fa-arrow-right"></i>
+                </div>
+            </div>
+            <div class="option-decoration"></div>
+        </div>
+        
+        <div class="settings-option profile-option" onclick="showSection('profile-settings')">
+            <div class="option-icon">
+                <i class="fas fa-user"></i>
+            </div>
+            <div class="option-content">
+                <h3>Profile Settings</h3>
+                <p>Manage your personal information</p>
+                <div class="option-arrow">
+                    <i class="fas fa-arrow-right"></i>
+                </div>
+            </div>
+            <div class="option-decoration"></div>
+        </div>
+        
+        <div class="settings-option time-option" onclick="showSection('time-configuration')">
+            <div class="option-icon">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="option-content">
+                <h3>Time Configuration</h3>
+                <p>Setup Pomodoro and study timers</p>
+                <div class="option-arrow">
+                    <i class="fas fa-arrow-right"></i>
+                </div>
+            </div>
+            <div class="option-decoration"></div>
+        </div>
+        
+        <div class="settings-option notification-option" onclick="showSection('notifications')">
+            <div class="option-icon">
+                <i class="fas fa-bell"></i>
+            </div>
+            <div class="option-content">
+                <h3>Notifications</h3>
+                <p>Configure study reminders and alerts</p>
+                <div class="option-arrow">
+                    <i class="fas fa-arrow-right"></i>
+                </div>
+            </div>            <div class="option-decoration"></div>
+        </div>
+        </div>
+    </div>
+
+    <!-- Settings Sections -->
+    <div id="settings-sections">
+        <!-- Subject Management Section -->
+        <div id="subject-management" class="settings-section" style="display: none;">
+            <div class="section-header">
+                 <div class="section-title">
+                    <h2><i class="fas fa-book"></i> Subject Management</h2>
+                    <p>Create subjects and add topics</p>
+                </div>
+                <div class="section-back">
+                    <button class="back-button" onclick="showMainOptions()">
+                        <i class="fas fa-arrow-left"></i>
+                        <span>Back to Settings</span>
+                    </button>
+                </div>                
+               
+            </div>
+            
+            <!-- Add Subject Form -->
+            <div class="modern-card subject-form">                <div class="card-header">
+                    <div class="header-icon">
+                        <i class="fas fa-plus-circle"></i>
+                    </div>
+                    <div class="header-text">
+                        <h3>Create New Subject</h3>
+                        <p>Add a subject and then add topics individually with detailed settings</p>
+                    </div>
+                </div>
+                
+                <div class="card-body">
+                    <form action="{{ url_for('add_subject') }}" method="POST" class="subject-form-content">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="subject_name">
+                                    <i class="fas fa-book"></i>
+                                    Subject Name
+                                </label>
+                                <input type="text" 
+                                       class="form-input" 
+                                       id="subject_name" 
+                                       name="subject_name" 
+                                       placeholder="e.g., Data Structures, Mathematics, Physics" 
+                                       required>                                
+                                       <div class="form-hint">
+                                    <i class="fas fa-info-circle"></i>
+                                    After creating the subject, you can add topics individually with detailed settings like prerequisites and break times.
+                                </div>
+                            </div>
+                        </div>                        <div class="form-actions">
+                            <button type="submit" class="btn-primary">
+                                <i class="fas fa-plus"></i>
+                                Create Subject
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Subjects List -->
+            <div class="modern-card subjects-list">
+                <div class="card-header">
+                    <div class="header-icon">
+                        <i class="fas fa-list"></i>
+                    </div>
+                    <div class="header-text">
+                        <h3>Your Subjects</h3>
+                        <p>Manage and organize your learning topics</p>
+                    </div>
+                </div>
+                
+                <div class="card-body">
+                    {% if current_user.subjects %}
+                        <div class="subjects-grid">
+                            {% for subject in current_user.subjects %}
+                            <div class="subject-card" id="subject-{{ subject.id }}">
+                                <div class="subject-header">
+                                    <div class="subject-info">
+                                        <h4><i class="fas fa-book"></i> {{ subject.name }}</h4>
+                                        <span class="topic-count">{{ subject.topics|length }} topics</span>
+                                    </div>
+                                    <div class="subject-actions">
+                                        <button class="btn-icon expand-btn" onclick="toggleTopics('{{ subject.id }}')">
+                                            <i class="fas fa-chevron-down" id="toggle-icon-{{ subject.id }}"></i>
+                                        </button>
+                                        <form action="{{ url_for('delete_subject', subject_id=subject.id) }}" method="POST" class="inline-form" 
+                                              onsubmit="return confirm('Are you sure you want to delete this subject and all its topics?')">
+                                            <button type="submit" class="btn-icon delete-btn">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+
+                                <!-- Topics Section -->
+                                <div class="topics-container" id="topics-{{ subject.id }}" style="display: none;">                                    <!-- Add Single Topic Form -->                                    <div class="add-topic-section">
+                                        <h5><i class="fas fa-plus-circle"></i> Add New Topic</h5>
+                                        <form action="{{ url_for('add_topic') }}" method="POST" class="topic-form">
+                                            <input type="hidden" name="subject_id" value="{{ subject.id }}">
+                                              <div class="topic-form-grid">                                                <div class="form-group span-2">
+                                                    <div class="form-section-header">
+                                                        <i class="fas fa-tags"></i> Topic Name
+                                                    </div>
+                                                    <input type="text" class="form-input" name="topic_name" 
+                                                           placeholder="e.g., Binary Search Trees" required>
+                                                </div>
+                                                  <!-- Prerequisites Section -->
+                                                <div class="form-group span-2">
+                                                    <div class="form-section-header">
+                                                        <i class="fas fa-link"></i> Prerequisites 
+                                                        <span class="optional">(What topics must be completed first?)</span>
+                                                    </div>
+                                                    <select class="form-select" name="prerequisites" multiple>
+                                                        <option value="">None (No prerequisites)</option>
+                                                        {% for existing_topic in subject.topics %}
+                                                            <option value="{{ existing_topic.id }}">{{ existing_topic.name }}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                    <div class="form-hint">
+                                                        <i class="fas fa-info-circle"></i>
+                                                        Hold Ctrl/Cmd to select multiple prerequisites. Leave empty if no prerequisites needed.
+                                                    </div>
+                                                </div>                                                <!-- Break Time Section (only show if there are existing topics) -->
+                                                {% if subject.topics|length > 0 %}
+                                                <div class="form-group span-2">                                                    <div class="form-section-header">
+                                                        <i class="fas fa-clock"></i> Break Times 
+                                                        <span class="optional">(Minutes needed between topics - directional)</span>
+                                                    </div>
+                                                    <div class="break-times-container">
+                                                        {% for existing_topic in subject.topics %}
+                                                        <div class="break-time-item">
+                                                            <div class="break-time-topic-header">
+                                                                <strong>Break times with "{{ existing_topic.name }}"</strong>
+                                                            </div>
+                                                            
+                                                            <!-- Break time FROM new topic TO existing topic -->
+                                                            <div class="break-time-direction">
+                                                                <label class="break-time-label">
+                                                                    <i class="fas fa-arrow-right" style="color: #007bff;"></i>
+                                                                    From <strong>new topic</strong> → to "{{ existing_topic.name }}":
+                                                                </label>
+                                                                <div class="break-time-controls">
+                                                                    <div class="break-time-input">                                                                        <input type="number" class="form-input break-time-field" 
+                                                                               name="break_time_to_{{ existing_topic.id }}" 
+                                                                               min="0" max="120" step="1"
+                                                                               placeholder="e.g., 10">
+                                                                    </div>
+                                                                    <div class="break-time-presets">
+                                                                        <button type="button" class="preset-btn" onclick="setDirectionalBreakTime('to_{{ existing_topic.id }}', 5)">5min</button>
+                                                                        <button type="button" class="preset-btn" onclick="setDirectionalBreakTime('to_{{ existing_topic.id }}', 10)">10min</button>
+                                                                        <button type="button" class="preset-btn" onclick="setDirectionalBreakTime('to_{{ existing_topic.id }}', 15)">15min</button>
+                                                                        <button type="button" class="preset-btn" onclick="setDirectionalBreakTime('to_{{ existing_topic.id }}', 30)">30min</button>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            <!-- Break time FROM existing topic TO new topic -->
+                                                            <div class="break-time-direction">
+                                                                <label class="break-time-label">
+                                                                    <i class="fas fa-arrow-left" style="color: #28a745;"></i>
+                                                                    From "{{ existing_topic.name }}" → to <strong>new topic</strong>:
+                                                                </label>
+                                                                <div class="break-time-controls">
+                                                                    <div class="break-time-input">                                                                        <input type="number" class="form-input break-time-field" 
+                                                                               name="break_time_from_{{ existing_topic.id }}" 
+                                                                               min="0" max="120" step="1"
+                                                                               placeholder="e.g., 15">
+                                                                    </div>
+                                                                    <div class="break-time-presets">
+                                                                        <button type="button" class="preset-btn" onclick="setDirectionalBreakTime('from_{{ existing_topic.id }}', 5)">5min</button>
+                                                                        <button type="button" class="preset-btn" onclick="setDirectionalBreakTime('from_{{ existing_topic.id }}', 10)">10min</button>
+                                                                        <button type="button" class="preset-btn" onclick="setDirectionalBreakTime('from_{{ existing_topic.id }}', 15)">15min</button>
+                                                                        <button type="button" class="preset-btn" onclick="setDirectionalBreakTime('from_{{ existing_topic.id }}', 30)">30min</button>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        {% endfor %}
+                                                    </div>
+                                                    <div class="form-hint">
+                                                        <i class="fas fa-info-circle"></i>
+                                                        Set different break durations for each direction. For example: easy→hard topics may need longer breaks than hard→easy.
+                                                    </div>
+                                                </div>
+                                                {% endif %}                                                <div class="form-group span-2">
+                                                    <button type="submit" class="btn-primary add-topic-btn">
+                                                        <i class="fas fa-plus"></i> Add Topic
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </form>
+                                    </div>
+
+                                    <!-- Topics List -->
+                                    {% if subject.topics %}
+                                        <div class="topics-list">
+                                            <h5><i class="fas fa-list-ul"></i> Topics in {{ subject.name }}</h5>
+                                            <div class="topics-grid">
+                                                {% for topic in subject.topics %}
+                                                <div class="topic-item">
+                                                    <div class="topic-content">                                                        <div class="topic-name">{{ topic.name }}</div>
+                                                    </div>                                                    <div class="topic-actions">                                                        <button type="button" class="topic-action-btn edit-btn" 
+                                                            data-topic-id="{{ topic.id }}"
+                                                            data-topic-name="{{ topic.name }}"
+                                                            data-topic-dependencies="{{ topic.dependencies or '[]' }}">>
+                                                            <i class="fas fa-edit"></i>
+                                                        </button>
+                                                        <form action="{{ url_for('delete_topic', topic_id=topic.id) }}" method="POST" class="inline-form" 
+                                                              onsubmit="return confirm('Are you sure you want to delete this topic?')">
+                                                            <button type="submit" class="topic-action-btn delete-btn">
+                                                                <i class="fas fa-trash"></i>
+                                                            </button>
+                                                        </form>
+                                                    </div>
+                                                </div>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                    {% else %}
+                                        <div class="empty-state">
+                                            <i class="fas fa-clipboard-list"></i>
+                                            <p>No topics added yet</p>
+                                            <small>Add your first topic using the form above</small>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="empty-state">
+                            <i class="fas fa-book"></i>
+                            <h3>No subjects yet</h3>
+                            <p>Create your first subject to start organizing your studies</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Profile Settings Section -->
+        <div id="profile-settings" class="settings-section" style="display: none;">
+            <div class="section-header">
+                 <div class="section-title">
+                    <h2><i class="fas fa-user"></i> Profile Settings</h2>
+                    <p>Manage your account information and security</p>
+                </div>
+                <div class="section-back">
+                    <button class="back-button" onclick="showMainOptions()">
+                        <i class="fas fa-arrow-left"></i>
+                        <span>Back to Settings</span>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="settings-grid-2">
+                <!-- Personal Information -->
+                <div class="modern-card">
+                    <div class="card-header">
+                        <div class="header-icon">
+                            <i class="fas fa-user-edit"></i>
+                        </div>
+                        <div class="header-text">
+                            <h3>Personal Information</h3>
+                            <p>Update your profile details</p>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <form id="profileForm" class="profile-form">
+                            <div class="form-group">
+                                <label for="profile-username">
+                                    <i class="fas fa-user"></i>
+                                    Username
+                                </label>
+                                <input type="text" class="form-input" id="profile-username" 
+                                       value="{{ current_user.username }}" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="profile-email">
+                                    <i class="fas fa-envelope"></i>
+                                    Email Address
+                                </label>
+                                <input type="email" class="form-input" id="profile-email" 
+                                       value="{{ current_user.email }}" required>
+                            </div>                            <div class="form-actions">
+                                <button type="submit" class="btn-primary">
+                                    <i class="fas fa-save"></i>
+                                    Update Profile
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Password Security -->
+                <div class="modern-card">
+                    <div class="card-header">
+                        <div class="header-icon">
+                            <i class="fas fa-lock"></i>
+                        </div>
+                        <div class="header-text">
+                            <h3>Password Security</h3>
+                            <p>Change your account password</p>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <form id="passwordForm" class="password-form">                            <div class="form-group">
+                                <label for="current-password">
+                                    <i class="fas fa-key"></i>
+                                    Current Password
+                                </label>
+                                <div class="password-input-container">
+                                    <input type="password" class="form-input" id="current-password" required>
+                                    <button type="button" class="password-toggle" onclick="togglePassword('current-password')">
+                                        <i class="fas fa-eye" id="current-password-icon"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="new-password">
+                                    <i class="fas fa-lock"></i>
+                                    New Password
+                                </label>
+                                <div class="password-input-container">
+                                    <input type="password" class="form-input" id="new-password" required>
+                                    <button type="button" class="password-toggle" onclick="togglePassword('new-password')">
+                                        <i class="fas fa-eye" id="new-password-icon"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="confirm-password">
+                                    <i class="fas fa-check-circle"></i>
+                                    Confirm New Password
+                                </label>
+                                <div class="password-input-container">
+                                    <input type="password" class="form-input" id="confirm-password" required>
+                                    <button type="button" class="password-toggle" onclick="togglePassword('confirm-password')">
+                                        <i class="fas fa-eye" id="confirm-password-icon"></i>
+                                    </button>
+                                </div>
+                            </div>                            <div class="form-actions">
+                                <button type="submit" class="btn-primary">
+                                    <i class="fas fa-shield-alt"></i>
+                                    Change Password
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Time Configuration Section -->
+        <div id="time-configuration" class="settings-section" style="display: none;">
+            <div class="section-header">
+                
+                <div class="section-back">
+                    <button class="back-button" onclick="showMainOptions()">
+                        <i class="fas fa-arrow-left"></i>
+                        <span>Back to Settings</span>
+                    </button>
+                </div>
+                
+            </div>
+            
+            <div class="modern-card time-config">
+                <div class="card-header">
+                    <div class="header-icon">
+                        <i class="fas fa-stopwatch"></i>
+                    </div>
+                    <div class="header-text">
+                        <h3>Pomodoro Timer Settings</h3>
+                        <p>Customize your study and break intervals</p>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <form id="timeConfigForm" class="time-form">
+                        <div class="time-grid">
+                            <div class="time-item">
+                                <div class="time-icon">
+                                    <i class="fas fa-play"></i>
+                                </div>
+                                <div class="time-content">
+                                    <label for="work-duration">Work Duration</label>                                    <div class="input-group">
+                                        <input type="number" class="form-input" id="work-duration" 
+                                               value="25" min="5" max="120">
+                                        <span class="input-suffix">minutes</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="time-item">
+                                <div class="time-icon">
+                                    <i class="fas fa-coffee"></i>
+                                </div>                                <div class="time-content">
+                                    <label for="short-break">Short Break</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-input" id="short-break" 
+                                               value="5" min="1" max="30">
+                                        <span class="input-suffix">minutes</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="time-item">                                <div class="time-icon">
+                                    <i class="fas fa-bed"></i>
+                                </div>
+                                <div class="time-content">
+                                    <label for="long-break">Long Break</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-input" id="long-break" 
+                                               value="15" min="5" max="60">
+                                        <span class="input-suffix">minutes</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="time-item">
+                                <div class="time-icon">
+                                    <i class="fas fa-repeat"></i>
+                                </div>                                <div class="time-content">
+                                    <label for="sessions-before-long">Sessions Before Long Break</label>                                    <div class="input-group">
+                                        <input type="number" class="form-input" id="sessions-before-long" 
+                                               value="4" min="2" max="10">
+                                        <span class="input-suffix">sessions</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="time-item span-2">
+                                <div class="time-icon">
+                                    <i class="fas fa-magic"></i>
+                                </div>
+                                <div class="time-content">
+                                    <label for="auto-start-breaks">Auto Start Breaks</label>
+                                    <select class="form-select" id="auto-start-breaks">
+                                        <option value="true">Yes, start automatically</option>
+                                        <option value="false">No, manual start</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>                        <div class="form-actions">
+                            <button type="submit" class="btn-primary">
+                                <i class="fas fa-save"></i>
+                                Save Timer Settings
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notifications Section -->
+        <div id="notifications" class="settings-section" style="display: none;">
+            <div class="section-header">
+                <div class="section-title">
+                    <h2><i class="fas fa-bell"></i> Notifications</h2>
+                    <p>Configure study reminders and alerts</p>
+                </div>
+                <div class="section-back">
+                    <button class="back-button" onclick="showMainOptions()">
+                        <i class="fas fa-arrow-left"></i>
+                        <span>Back to Settings</span>
+                    </button>
+                </div>
+                
+            </div>
+            
+            <div class="settings-grid-2">
+                <!-- Notification Settings -->
+                <div class="modern-card">
+                    <div class="card-header">
+                        <div class="header-icon">
+                            <i class="fas fa-bell-slash"></i>
+                        </div>
+                        <div class="header-text">
+                            <h3>Study Reminders</h3>
+                            <p>Setup daily study notifications</p>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <form id="notificationForm" class="notification-form">
+                            <div class="form-group">
+                                <label for="reminder-time">
+                                    <i class="fas fa-clock"></i>
+                                    Daily Reminder Time
+                                </label>
+                                <input type="time" class="form-input" id="reminder-time">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="enable-notifications">
+                                    <i class="fas fa-toggle-on"></i>
+                                    Enable Notifications
+                                </label>
+                                <select class="form-select" id="enable-notifications">
+                                    <option value="true">Yes, remind me daily</option>
+                                    <option value="false">No, I'll study on my own</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="notification-message">
+                                    <i class="fas fa-comment"></i>
+                                    Custom Message
+                                </label>
+                                <textarea class="form-textarea" id="notification-message" rows="3"
+                                          placeholder="Enter your custom reminder message">Time to study! Get back to your learning journey.</textarea>
+                            </div>
+                              <div class="form-actions">                                <button type="submit" class="btn-primary">
+                                    <i class="fas fa-bell"></i>
+                                    Save Notification Settings
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Test Notifications -->
+                <div class="modern-card">
+                    <div class="card-header">
+                        <div class="header-icon">
+                            <i class="fas fa-vial"></i>
+                        </div>
+                        <div class="header-text">
+                            <h3>Test Notifications</h3>
+                            <p>Check if notifications are working</p>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="test-section">
+                            <div class="test-description">
+                                <p>Click the button below to send a test notification and verify your browser settings.</p>
+                            </div>                            <div class="test-actions">                                <button class="btn-primary" onclick="testNotification()">
+                                    <i class="fas fa-paper-plane"></i>
+                                    Send Test Notification
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Modern Settings Styling */
+.settings-content {
+    width: 100%;
+    padding: 20px;
+    background: transparent;
+    min-height: 100vh;
+}
+
+/* Settings Title Section */
+.settings-title-section {
+    margin-bottom: 40px;
+}
+
+.settings-title-section h1 {
+    color: var(--text-light);
+    font-size: 2.5rem;
+    margin-bottom: 0.8rem;
+    font-weight: 700;
+}
+
+.settings-title-section p {
+    color: var(--text-light);
+    font-size: 1.2rem;
+}
+
+/* Settings White Container */
+.settings-container {
+    background: transparent;
+    border-radius: 0;
+    padding: 0;
+    margin-bottom: 0;
+    box-shadow: none;
+    border: none;
+}
+
+/* Header Section */
+.settings-header {
+    background: rgba(169, 193, 145, 0.1);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    padding: 30px;
+    margin-bottom: 30px;
+    border: 1px solid var(--tertiary-color);
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.header-text h1 {
+    color: var(--octonary-color);
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 10px;
+    text-shadow: 0 2px 10px rgba(56, 64, 49, 0.3);
+}
+
+.header-text p {
+    color: var(--octonary-color);
+    font-size: 1.1rem;
+    margin: 0;
+}
+
+.floating-icon {
+    width: 80px;
+    height: 80px;
+    background: rgba(147, 168, 126, 0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: float 3s ease-in-out infinite;
+}
+
+.floating-icon i {
+    font-size: 2rem;
+    color: var(--quaternary-color);
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+}
+
+/* Settings Grid */
+.settings-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 25px;
+    margin-bottom: 40px;
+}
+
+.settings-option {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 20px;
+    padding: 30px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+.settings-option:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+    background: white;
+}
+
+.settings-option::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--quaternary-color), var(--quinary-color));
+}
+
+.option-icon {
+    width: 70px;
+    height: 70px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+    transition: all 0.3s ease;
+}
+
+.settings-option .option-icon {
+    background: linear-gradient(135deg, var(--quaternary-color), var(--secondary-color));
+    color: white;
+}
+
+.profile-option .option-icon {
+    background: linear-gradient(135deg, var(--quaternary-color), var(--secondary-color));
+    color: white;
+}
+
+.time-option .option-icon {
+   background: linear-gradient(135deg, var(--quaternary-color), var(--secondary-color));
+    color: white;
+}
+
+.notification-option .option-icon {
+    background: linear-gradient(135deg, var(--quaternary-color), var(--secondary-color));
+    color: white;
+}
+
+.option-icon i {
+    font-size: 1.8rem;
+}
+
+.option-content h3 {
+    font-size: 1.4rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--octonary-color);
+}
+
+.option-content p {
+    color: var(--senary-color);
+    margin-bottom: 15px;
+    line-height: 1.5;
+}
+
+.option-arrow {
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0.7;
+    transition: all 0.3s ease;
+}
+
+.settings-option:hover .option-arrow {
+    transform: translateY(-50%) translateX(5px);
+    opacity: 1;
+}
+
+/* Section Layouts */
+.settings-section {
+    animation: slideIn 0.5s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+}
+
+.back-button {
+    border: none;
+    border-radius: 15px;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-light);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    background: #464ad7;
+    
+    
+}
+
+.back-button:hover {
+   background: var(--senary-color);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+.section-title h2 {
+    color: var(--text-light);
+    font-size: 2rem;
+    font-weight: 600;
+    margin-bottom: 5px;
+    text-shadow: 0 2px 10px rgba(56, 64, 49, 0.3);
+}
+
+.section-title p {
+    color: white!important;
+}
+
+/* Modern Cards */
+.modern-card {
+    background: white;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    margin-bottom: 25px;
+    transition: all 0.3s ease;
+}
+
+.modern-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+}
+
+.card-header {
+    padding: 25px 30px;
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    border-bottom: 1px solid #e9ecef;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.header-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 15px;
+    background: linear-gradient(135deg, var(--quaternary-color), var(--secondary-color));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.3rem;
+}
+
+.header-text h3 {
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin-bottom: 3px;
+    color: var(--octonary-color);
+}
+
+.header-text p {
+    color: var(--octonary-color);
+    margin: 0;
+    font-size: 0.9rem;
+}
+
+.card-body {
+    padding: 30px;
+}
+
+/* Form Styling */
+.form-group {
+    margin-bottom: 25px;
+}
+
+.form-group label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    color: var(--octonary-color);
+    margin-bottom: 8px;
+    font-size: 0.95rem;
+}
+
+.form-input,
+.form-select,
+.form-textarea {
+    width: 100%;
+    padding: 15px;
+    border: 2px solid var(--secondary-color);
+    border-radius: 12px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    background: var(--text-light);
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+    outline: none;
+    border-color: var(--quaternary-color);
+    background: white;
+    box-shadow: 0 0 0 3px rgba(147, 168, 126, 0.1);
+}
+
+.form-textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.form-hint {
+    margin-top: 8px;
+    padding: 12px;
+    background: var(--primary-color);
+    border-radius: 8px;
+    color: var(--senary-color);
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.optional {
+    color: var(--octonary-color);
+    font-weight: 400;
+    font-size: 0.85rem;
+}
+
+/* Buttons */
+.btn-primary,
+.btn-success,
+.btn-warning,
+.btn-info {
+    padding: 15px 25px;
+    border: none;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    font-size: 1rem;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--quaternary-color), var(--quinary-color));
+    color: white;
+}
+
+.btn-success {
+    background: linear-gradient(135deg, var(--tertiary-color), var(--quaternary-color));
+    color: white;
+}
+
+.btn-warning {
+    background: linear-gradient(135deg, var(--secondary-color), var(--tertiary-color));
+    color: var(--octonary-color);
+}
+
+.btn-info {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: var(--octonary-color);
+}
+
+.btn-primary:hover,
+.btn-success:hover,
+.btn-warning:hover,
+.btn-info:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+}
+
+.btn-icon {
+    width: 38px;
+    height: 38px;
+    border: none;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    font-size: 0.9rem;
+}
+
+.expand-btn {
+    background: var(--quaternary-color);
+    color: var(--octonary-color);
+}
+
+.delete-btn {
+    background: linear-gradient(145deg, #ff5252, #f44336);
+    color: white;
+}
+
+.edit-btn {
+    background: linear-gradient(145deg, #4dabf7, #339af0);
+    color: white;
+    margin-right: 12px;
+    position: relative;
+    overflow: hidden;
+}
+
+.expand-btn:hover {
+    background: var(--quinary-color);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.edit-btn:hover {
+    background: linear-gradient(145deg, #339af0, #228be6);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
+}
+
+.edit-btn::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 5px;
+    height: 5px;
+    background: rgba(255, 255, 255, 0.6);
+    opacity: 0;
+    border-radius: 100%;
+    transform: scale(1, 1) translate(-50%);
+    transform-origin: 50% 50%;
+}
+
+.edit-btn:focus:not(:active)::after {
+    animation: ripple 1s ease-out;
+}
+
+.delete-btn {
+    background: linear-gradient(145deg, #ff5252, #f44336);
+    color: white;
+    position: relative;
+    overflow: hidden;
+}
+
+.topic-actions .delete-btn {
+    background: linear-gradient(145deg, #ff5252, #f44336);
+    color: white;
+}
+
+.delete-btn:hover, .topic-actions .delete-btn:hover {
+    background: linear-gradient(145deg, #f03e3e, #e03131);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.delete-btn::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 5px;
+    height: 5px;
+    background: rgba(255, 255, 255, 0.6);
+    opacity: 0;
+    border-radius: 100%;
+    transform: scale(1, 1) translate(-50%);
+    transform-origin: 50% 50%;
+}
+
+.delete-btn:focus:not(:active)::after {
+    animation: ripple 1s ease-out;
+}
+
+@keyframes ripple {
+    0% {
+        transform: scale(0, 0);
+        opacity: 0.5;
+    }
+    20% {
+        transform: scale(25, 25);
+        opacity: 0.5;
+    }
+    100% {
+        opacity: 0;
+        transform: scale(40, 40);
+    }
+}
+
+.btn-icon:hover {
+    transform: translateY(-2px);
+}
+
+/* Subject Management Specific */
+.subjects-grid {
+    display: grid;
+    gap: 20px;
+}
+
+.subject-card {
+    border: 2px solid var(--tertiary-color);
+    border-radius: 15px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.subject-card:hover {
+    border-color: var(--quaternary-color);
+    box-shadow: 0 5px 20px rgba(147, 168, 126, 0.2);
+}
+
+.subject-header {
+    padding: 20px;
+    background: var(--secondary-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.subject-info h4 {
+    margin: 0 0 5px 0;
+    color: var(--text-light);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.topic-count {
+    background: var(--quaternary-color);
+    color: white;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.subject-actions {
+    color:white;
+    display: flex;
+    gap: 8px;
+}
+
+.topics-container {
+    padding: 20px;
+    background: white;
+    border-top: 1px solid #e9ecef;
+}
+
+.add-topic-section {
+    background: white;
+    border-radius: 12px;
+    padding: 25px;
+    margin-bottom: 25px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    border: 1px solid rgba(0,0,0,0.05);
+}
+
+.add-topic-section h5 {
+    margin-bottom: 20px;
+    color: var(--octonary-color);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.25rem;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.topic-form-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    align-items: flex-start;
+    width: 100%;
+}
+
+.topic-form .form-group {
+    margin-bottom: 5px;
+    width: 100%;
+    max-width: 100%;
+
+    
+}
+
+.topic-form label {
+    margin-bottom: 8px;
+    display: block;
+    font-weight: 600;
+    color: var(--octonary-color);
+}
+
+.topic-form .form-input,
+.topic-form .form-select {
+    border: 2px solid var(--secondary-color);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+    transition: all 0.2s ease;
+    padding: 12px 15px;
+    height: 48px;
+    font-size: 1rem;
+    border-radius: 8px;
+    width: 100%;
+}
+
+/* Special styling for multi-select prerequisites box */
+.topic-form .form-select[multiple] {
+    height: 192px; /* Make prerequisite multi-select box at least 2 inches tall */
+    min-height: 192px;
+}
+
+/* Special styling for edit topic modal prerequisites box */
+#edit-prerequisites-select {
+    height: 192px !important; /* Make prerequisite multi-select box at least 2 inches tall */
+    min-height: 192px !important;
+}
+
+.topic-form .form-input:hover,
+.topic-form .form-select:hover {
+    border-color: var(--quaternary-color);
+}
+
+.topic-form .form-input:focus,
+.topic-form .form-select:focus {
+    border-color: var(--secondary-color);
+    box-shadow: 0 0 0 3px rgba(var(--secondary-color-rgb), 0.15);
+}
+
+.form-section-header {
+    font-weight: 600;
+    color: var(--octonary-color);
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(var(--secondary-color-rgb), 0.2);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    text-align: left;
+}
+
+select[multiple] {
+    min-height: 120px;
+    padding: 10px;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+    width: 100%;
+    max-width: 100%;
+}
+
+/* Prerequisites and Break Time Styles */
+.form-hint {
+    font-size: 0.85rem;
+    color: var(--senary-color);
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 12px;
+    background-color: rgba(var(--secondary-color-rgb), 0.05);
+    border-radius: 6px;
+    border-left: 3px solid var(--secondary-color);
+}
+
+.optional {
+    font-size: 0.85rem;
+    color: var(--octonary-color);
+    font-weight: normal;
+    background: rgba(var(--secondary-color-rgb), 0.08);
+    padding: 3px 8px;
+    border-radius: 4px;
+    margin-left: 6px;
+}
+
+.break-time-grid {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.break-times-container {
+    background: var(--bg-color);
+    padding: 18px;
+    border-radius: 10px;
+    border: 1px solid var(--secondary-color);
+    margin-bottom: 12px;
+    max-height: 350px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    width: 100%;
+}
+
+.break-times-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.break-times-container::-webkit-scrollbar-thumb {
+    background-color: rgba(0,0,0,0.2);
+    border-radius: 3px;
+}
+
+.break-time-item {
+    margin-bottom: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border-color);
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+}
+
+.break-time-item:last-child {
+    margin-bottom: 0;
+    border-bottom: none;
+}
+
+.break-time-topic-header {
+    font-weight: 600;
+    color: var(--text-color);
+    margin-bottom: 12px;
+    font-size: 1rem;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #f8f9fa;
+}
+
+.break-time-direction {
+    margin-bottom: 12px;
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border-left: 3px solid #dee2e6;
+}
+
+.break-time-direction:last-child {
+    margin-bottom: 0;
+}
+
+.break-time-label {
+    display: block;
+    font-weight: 600;
+    color: var(--text-color);
+    margin-bottom: 10px;
+    font-size: 0.95rem;
+}
+
+.break-time-controls {
+    display: flex;
+    align-items: flex-start;
+    gap: 15px;
+    flex-wrap: wrap;
+    margin-top: 5px;
+    width: 100%;
+}
+
+.break-time-input {
+    position: relative;
+    flex: 0 0 120px;
+    min-width: 120px;
+}
+
+.break-time-field {
+    padding-right: 65px !important;
+    width: 100%;
+    height: 40px;
+    border-radius: 6px;
+}
+
+.input-suffix {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--quinary-color);
+    font-size: 0.9rem;
+    pointer-events: none;
+    white-space: nowrap;
+}
+
+.break-time-presets {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.preset-btn {
+    background: var(--bg-color);
+    color: var(--octonary-color);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    height: 40px;
+    font-weight: 600;
+}
+
+.preset-btn:hover {
+    background: var(--secondary-color);
+    color: white;
+    border-color: var(--secondary-color);
+}
+
+.preset-btn:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(var(--secondary-color-rgb), 0.3);
+}
+
+.add-topic-btn {
+    height: 46px;
+    padding: 0 25px;
+    font-size: 1rem;
+    margin-top: 10px;
+    width: auto;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(var(--secondary-color-rgb), 0.25);
+    transition: all 0.3s ease;
+}
+
+.add-topic-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(var(--secondary-color-rgb), 0.3);
+}
+
+.span-2 {
+    width: 100%;
+}
+
+.preset-btn:hover {
+    background: var(--quaternary-color);
+    color: white;
+    transform: translateY(-1px);
+}
+
+select[multiple] {
+    min-height: 100px;
+    padding: 8px;
+}
+
+select[multiple] option:checked {
+    background: var(--quaternary-color);
+    color: white;
+}
+
+.span-2 {
+    grid-column: span 2;
+}
+
+.topics-grid {
+    display: grid;
+    gap: 12px;
+}
+
+.topic-item {
+    background: var(--secondary-color);
+    border: 1px solid var(--tertiary-color);
+    border-radius: 10px;
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.3s ease;
+}
+
+.topic-item:hover {
+    background: white;
+    border-color: var(--quaternary-color);
+    transform: translateX(3px);
+}
+
+.topic-name {
+    font-weight: 600;
+    color: var(--octonary-color);
+    margin-bottom: 5px;
+}
+
+.topic-meta {
+    display: flex;
+    gap: 12px;
+    font-size: 0.85rem;
+    color: var(--quinary-color);
+}
+
+.topic-meta span {
+    background: white;
+    padding: 2px 8px;
+    border-radius: 6px;
+    border: 1px solid var(--tertiary-color);
+}
+
+/* Time Configuration */
+.time-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.time-item {
+
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.time-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--quaternary-color), var(--secondary-color));
+    
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.2rem;
+}
+
+.time-content {
+    flex: 1;
+}
+
+.time-content label {
+    display: block;
+    font-weight: 600;
+    color: var(--octonary-color);
+    margin-bottom: 8px;
+}
+
+.input-group {
+    display: flex;
+    align-items: center;
+    
+}
+
+.input-suffix {
+    color: var(--octonary-color);
+    padding: 15px;
+    border-radius: 0 12px 12px 0;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.input-group .form-input {
+    padding: 15px;
+    border-radius: 0 12px 12px 0;
+    border: 2px solid var(--secondary-color);
+}
+
+
+/* Grid Layouts */
+.settings-grid-2 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 25px;
+}
+
+/* Empty States */
+.empty-state {
+    text-align: center;
+    padding: 50px 20px;
+    color: var(--quinary-color);
+}
+
+.empty-state i {
+    font-size: 3rem;
+    margin-bottom: 15px;
+    opacity: 0.5;
+}
+
+.empty-state h3 {
+    color: var(--octonary-color);
+    margin-bottom: 10px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .settings-content {
+        padding: 15px;
+    }
+    
+    .settings-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .section-header {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+    }
+    
+    .topic-form-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .span-2 {
+        grid-column: span 1;
+    }
+    
+    .settings-grid-2 {
+        grid-template-columns: 1fr;
+    }
+    
+    .time-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    /* Break time mobile responsive fixes */
+    .break-times-container {
+        padding: 12px;
+        margin-left: 0;
+        margin-right: 0;
+        max-width: 100%;
+        overflow-x: hidden;
+    }
+    
+    .break-time-controls {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+        width: 100%;
+    }
+    
+    .break-time-input {
+        flex: 1;
+        min-width: 100%;
+        max-width: 100%;
+    }
+    
+    .break-time-presets {
+        justify-content: flex-start;
+        flex-wrap: wrap;
+        width: 100%;
+    }
+    
+    .preset-btn {
+        flex: 0 0 auto;
+        min-width: 60px;
+        padding: 6px 10px;
+        font-size: 0.8rem;
+    }
+    
+    .break-time-label {
+        font-size: 0.9rem;
+        line-height: 1.3;
+        word-wrap: break-word;
+    }
+    
+    .break-time-direction {
+        padding: 10px;
+        margin-bottom: 10px;
+    }
+    
+    .break-time-topic-header {
+        font-size: 0.95rem;
+        word-wrap: break-word;
+    }
+}
+
+/* Animations */
+.inline-form {
+    display: inline;
+}
+
+.form-actions {
+    margin-top: 25px;
+    text-align: right;
+}
+
+/* Flash Message Styles */
+.alert {
+    padding: 15px 20px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    border: none;
+    font-weight: 500;
+}
+
+.alert-success {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: var(--octonary-color);
+}
+
+.alert-error {
+    background: linear-gradient(135deg, #f8d7da, #f5c6cb);
+    color: var(--error);
+}
+
+/* Quick Add Topic Buttons */
+.quick-add-section {
+    margin-top: 20px;
+    padding: 15px;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    border-radius: 10px;
+    border: 1px solid var(--tertiary-color);
+}
+
+.quick-add-section h6 {
+    margin-bottom: 12px;
+    color: var(--octonary-color);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.quick-add-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.quick-add-btn {
+    background: linear-gradient(135deg, var(--quaternary-color), var(--quinary-color));
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+.quick-add-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(147, 168, 126, 0.4);
+    background: linear-gradient(135deg, var(--quinary-color), var(--quaternary-color));
+}
+
+.quick-add-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
+}
+
+/* Topic action buttons */
+.topic-actions .topic-action-btn {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+    margin-left: 8px;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+}
+
+.topic-actions .topic-action-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.topic-actions .edit-btn {
+    background: linear-gradient(135deg, var(--quaternary-color), #7fb069);
+    color: white;
+}
+
+.edit-btn:hover {
+    background: linear-gradient(135deg, var(--primary-color),var(--quaternary-color));
+    box-shadow: 0 3px 10px rgba(255, 152, 0, 0.4);
+}
+
+.complete-btn {
+    background: linear-gradient(135deg, var(--success), #66bb6a);
+    color: white;
+    border: 1px solid var(--success);
+}
+
+.complete-btn:hover {
+    background: linear-gradient(135deg, #66bb6a, var(--success));
+    box-shadow: 0 3px 10px rgba(76, 175, 80, 0.4);
+}
+
+.complete-btn.completed {
+    background: linear-gradient(135deg, var(--success), #388e3c);
+    opacity: 0.8;
+}
+
+/* Password Toggle Styles */
+.password-input-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.password-input-container .form-input {
+    padding-right: 45px;
+    flex: 1;
+}
+
+.password-toggle {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--quinary-color);
+    font-size: 1rem;
+    padding: 0;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.3s ease;
+}
+
+.password-toggle:hover {
+    color: var(--tertiary-color);
+}
+
+.password-toggle:focus {
+    outline: none;
+    color: var(--tertiary-color);
+}
+</style>
+
+<script>
+function showSection(sectionId) {
+    // Hide main options
+    document.getElementById('main-options').style.display = 'none';
+    
+    // Hide all sections
+    const sections = document.querySelectorAll('.settings-section');
+    sections.forEach(section => section.style.display = 'none');
+    
+    // Show selected section
+    document.getElementById(sectionId).style.display = 'block';
+}
+
+function showMainOptions() {
+    // Hide all sections
+    const sections = document.querySelectorAll('.settings-section');
+    sections.forEach(section => section.style.display = 'none');
+    
+    // Show main options
+    document.getElementById('main-options').style.display = 'flex';
+}
+
+function togglePassword(inputId) {
+    const passwordInput = document.getElementById(inputId);
+    const eyeIcon = document.getElementById(inputId + '-icon');
+    
+    if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        eyeIcon.classList.remove('fa-eye');
+        eyeIcon.classList.add('fa-eye-slash');
+    } else {
+        passwordInput.type = 'password';
+        eyeIcon.classList.remove('fa-eye-slash');
+        eyeIcon.classList.add('fa-eye');
+    }
+}
+
+function toggleTopics(subjectId) {
+    const topicsDiv = document.getElementById('topics-' + subjectId);
+    const icon = document.getElementById('toggle-icon-' + subjectId);
+    
+    if (topicsDiv.style.display === 'none') {
+        topicsDiv.style.display = 'block';
+        icon.className = 'fas fa-minus';
+    } else {
+        topicsDiv.style.display = 'none';
+        icon.className = 'fas fa-plus';
+    }
+}
+
+// Profile form submission
+document.addEventListener('DOMContentLoaded', function() {
+    // Load Pomodoro settings on page load
+    loadPomodoroSettings();
+    
+    document.getElementById('profileForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const username = document.getElementById('profile-username').value;
+        const email = document.getElementById('profile-email').value;
+        
+        fetch('/api/user/profile', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                username: username,
+                email: email
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Profile updated successfully!');
+            } else {
+                alert('Error updating profile: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('Error updating profile: ' + error);
+        });
+    });
+
+    // Password form submission
+    document.getElementById('passwordForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const currentPassword = document.getElementById('current-password').value;
+        const newPassword = document.getElementById('new-password').value;
+        const confirmPassword = document.getElementById('confirm-password').value;
+        
+        if (newPassword !== confirmPassword) {
+            alert('New passwords do not match!');
+            return;
+        }
+        
+        fetch('/api/user/password', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                current_password: currentPassword,
+                new_password: newPassword
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Password changed successfully!');
+                document.getElementById('passwordForm').reset();
+            } else {
+                alert('Error changing password: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('Error changing password: ' + error);        });
+    });    // Load Pomodoro settings from localStorage
+    function loadPomodoroSettings() {
+        const pomodoroSettings = localStorage.getItem('pomodoroSettings');
+        if (pomodoroSettings) {
+            const settings = JSON.parse(pomodoroSettings);
+            document.getElementById('work-duration').value = settings.workDuration || '';
+            document.getElementById('short-break').value = settings.shortBreak || '';
+            document.getElementById('long-break').value = settings.longBreak || '';
+            document.getElementById('sessions-before-long').value = settings.sessionsBeforeLong || '';
+            document.getElementById('auto-start-breaks').value = settings.autoStartBreaks ? 'true' : 'false';
+            console.log('Pomodoro settings loaded from localStorage:', settings);
+        } else {
+            console.log('No Pomodoro settings found in localStorage');
+        }
+    }
+
+    // Time configuration form submission
+    document.getElementById('timeConfigForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const settings = {
+            workDuration: document.getElementById('work-duration').value,
+            shortBreak: document.getElementById('short-break').value,
+            longBreak: document.getElementById('long-break').value,
+            sessionsBeforeLong: document.getElementById('sessions-before-long').value,
+            autoStartBreaks: document.getElementById('auto-start-breaks').value === 'true'
+        };
+        
+        localStorage.setItem('pomodoroSettings', JSON.stringify(settings));
+        alert('Time settings saved successfully!');
+    });    // Real-time sync: Save settings when any input changes
+    function savePomodoroSettingsRealTime() {
+        const settings = {
+            workDuration: document.getElementById('work-duration').value,
+            shortBreak: document.getElementById('short-break').value,
+            longBreak: document.getElementById('long-break').value,
+            sessionsBeforeLong: document.getElementById('sessions-before-long').value,
+            autoStartBreaks: document.getElementById('auto-start-breaks').value === 'true'
+        };
+        localStorage.setItem('pomodoroSettings', JSON.stringify(settings));
+        
+        // Trigger storage event for cross-tab sync
+        window.dispatchEvent(new StorageEvent('storage', {
+            key: 'pomodoroSettings',
+            newValue: JSON.stringify(settings),
+            storageArea: localStorage
+        }));
+        
+        console.log('Pomodoro settings saved from Settings page:', settings);
+    }
+
+    // Add real-time listeners to all pomodoro input fields
+    document.getElementById('work-duration').addEventListener('input', savePomodoroSettingsRealTime);
+    document.getElementById('short-break').addEventListener('input', savePomodoroSettingsRealTime);
+    document.getElementById('long-break').addEventListener('input', savePomodoroSettingsRealTime);
+    document.getElementById('sessions-before-long').addEventListener('input', savePomodoroSettingsRealTime);
+    document.getElementById('auto-start-breaks').addEventListener('change', savePomodoroSettingsRealTime);    // Listen for storage changes from Pomodoro timer (cross-tab sync)
+    window.addEventListener('storage', (e) => {
+        if (e.key === 'pomodoroSettings') {
+            const pomodoroSettings = localStorage.getItem('pomodoroSettings');
+            if (pomodoroSettings) {
+                const settings = JSON.parse(pomodoroSettings);
+                document.getElementById('work-duration').value = settings.workDuration || '';
+                document.getElementById('short-break').value = settings.shortBreak || '';
+                document.getElementById('long-break').value = settings.longBreak || '';
+                document.getElementById('sessions-before-long').value = settings.sessionsBeforeLong || '';
+                document.getElementById('auto-start-breaks').value = settings.autoStartBreaks ? 'true' : 'false';
+                console.log('Settings synced from Pomodoro timer');
+            }
+        }
+    });    // Also check for settings updates periodically (for same-tab updates)
+    setInterval(() => {
+        const pomodoroSettings = localStorage.getItem('pomodoroSettings');
+        if (pomodoroSettings) {
+            const settings = JSON.parse(pomodoroSettings);
+            const currentWork = document.getElementById('work-duration').value;
+            const currentShort = document.getElementById('short-break').value;
+            const currentLong = document.getElementById('long-break').value;
+            const currentSessions = document.getElementById('sessions-before-long').value;
+            
+            if (currentWork != (settings.workDuration || '') ||
+                currentShort != (settings.shortBreak || '') ||
+                currentLong != (settings.longBreak || '') ||
+                currentSessions != (settings.sessionsBeforeLong || '')) {
+                document.getElementById('work-duration').value = settings.workDuration || '';
+                document.getElementById('short-break').value = settings.shortBreak || '';
+                document.getElementById('long-break').value = settings.longBreak || '';
+                document.getElementById('sessions-before-long').value = settings.sessionsBeforeLong || '';
+                document.getElementById('auto-start-breaks').value = settings.autoStartBreaks ? 'true' : 'false';
+                console.log('Settings auto-synced in same tab');
+            }
+        }
+    }, 2000); // Check every 2 seconds
+
+    // Notification form submission
+    document.getElementById('notificationForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const reminderTime = document.getElementById('reminder-time').value;
+        const enableNotifications = document.getElementById('enable-notifications').value === 'true';
+        const message = document.getElementById('notification-message').value;
+        
+        const settings = {
+            reminderTime: reminderTime,
+            enabled: enableNotifications,
+            message: message
+        };
+        
+        localStorage.setItem('notificationSettings', JSON.stringify(settings));
+        
+        if (enableNotifications) {
+            scheduleNotification(reminderTime, message);
+        }
+        
+        alert('Notification settings saved successfully!');
+    });    // Load saved settings on page load
+    loadSavedSettings();
+    
+    // Listen for storage changes to sync with pomodoro timer
+    window.addEventListener('storage', (e) => {
+        if (e.key === 'pomodoroSettings') {
+            loadSavedSettings();
+        }
+    });
+    
+    // Also check for settings updates periodically (for same-tab updates)
+    setInterval(() => {
+        loadSavedSettings();
+    }, 3000); // Check every 3 seconds
+});
+
+function scheduleNotification(time, message) {
+    if (!("Notification" in window)) {
+        alert("This browser does not support notifications");
+        return;
+    }
+    
+    if (Notification.permission === "granted") {
+        setDailyNotification(time, message);
+    } else if (Notification.permission !== "denied") {
+        Notification.requestPermission().then(function (permission) {
+            if (permission === "granted") {
+                setDailyNotification(time, message);
+            }
+        });
+    }
+}
+
+function setDailyNotification(time, message) {
+    const [hours, minutes] = time.split(':');
+    const now = new Date();
+    const notificationTime = new Date();
+    
+    notificationTime.setHours(parseInt(hours));
+    notificationTime.setMinutes(parseInt(minutes));
+    notificationTime.setSeconds(0);
+    
+    if (notificationTime <= now) {
+        notificationTime.setDate(notificationTime.getDate() + 1);
+    }
+    
+    const timeUntilNotification = notificationTime.getTime() - now.getTime();
+    
+    setTimeout(() => {
+        new Notification("Intelliplan Study Reminder", {
+            body: message,
+            icon: "/static/images/brain-icon.png"
+        });
+        
+        // Schedule for next day
+        setDailyNotification(time, message);
+    }, timeUntilNotification);
+}
+
+function testNotification() {
+    if (!("Notification" in window)) {
+        alert("This browser does not support notifications");
+        return;
+    }
+    
+    if (Notification.permission === "granted") {
+        new Notification("Test Notification", {
+            body: "Notifications are working correctly!",
+            icon: "/static/images/brain-icon.png"
+        });
+    } else if (Notification.permission !== "denied") {
+        Notification.requestPermission().then(function (permission) {
+            if (permission === "granted") {
+                new Notification("Test Notification", {
+                    body: "Notifications are working correctly!",
+                    icon: "/static/images/brain-icon.png"
+                });
+            }
+        });
+    } else {
+        alert("Notifications are blocked. Please enable them in your browser settings.");
+    }
+}
+
+function loadSavedSettings() {
+    // Load pomodoro settings
+    const pomodoroSettings = localStorage.getItem('pomodoroSettings');
+    if (pomodoroSettings) {
+        const settings = JSON.parse(pomodoroSettings);
+        document.getElementById('work-duration').value = settings.workDuration || '';
+        document.getElementById('short-break').value = settings.shortBreak || '';
+        document.getElementById('long-break').value = settings.longBreak || '';
+        document.getElementById('sessions-before-long').value = settings.sessionsBeforeLong || '';
+        document.getElementById('auto-start-breaks').value = settings.autoStartBreaks ? 'true' : 'false';
+    }
+    
+    // Load notification settings
+    const notificationSettings = localStorage.getItem('notificationSettings');
+    if (notificationSettings) {
+        const settings = JSON.parse(notificationSettings);
+        document.getElementById('reminder-time').value = settings.reminderTime || '';
+        document.getElementById('enable-notifications').value = settings.enabled ? 'true' : 'false';
+        document.getElementById('notification-message').value = settings.message || 'Time to study! Get back to your learning journey.';
+          if (settings.enabled) {
+            scheduleNotification(settings.reminderTime, settings.message);
+        }
+    }
+}
+
+// Function to load prerequisites
+function loadPrerequisites(selectElement, subjectId, currentTopicId, selectedPrerequisites) {
+    // Clear existing options
+    selectElement.innerHTML = '';
+    
+    fetch(`/api/topics/${subjectId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.topics) {
+                // Add "None" option
+                const noneOption = document.createElement('option');
+                noneOption.value = "";
+                noneOption.text = "None (No prerequisites)";
+                selectElement.appendChild(noneOption);
+                
+                // Add other topics
+                data.topics.forEach(topic => {
+                    if (topic.id != currentTopicId) {
+                        const option = document.createElement('option');
+                        option.value = topic.id;
+                        option.text = topic.name;
+                        
+                        if (selectedPrerequisites.includes(topic.id)) {
+                            option.selected = true;
+                        }
+                        
+                        selectElement.appendChild(option);
+                    }
+                });
+            }
+        })
+        .catch(error => console.error('Error fetching topics:', error));
+}
+
+// Topic management functions
+function quickAddTopic(subjectId, topicName) {
+    console.log('Quick adding topic:', { subjectId, topicName });
+    
+    // Validate parameters
+    if (!subjectId || !topicName) {
+        console.error('Missing required parameters for topic addition');
+        alert('Error: Missing required parameters');
+        return;
+    }
+    
+    // Confirm with user
+    const confirmed = confirm(`Add "${topicName}" to this subject?`);
+    
+    if (confirmed) {
+        try {
+            // Create and submit form
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/add-topic';
+            
+            // Add form inputs (basic fields for quick add, no default values)
+            const inputs = [
+                { name: 'subject_id', value: String(subjectId) },
+                { name: 'topic_name', value: String(topicName) },
+                // No default values - server will handle defaults when needed
+                { name: 'prerequisites', value: '' },
+                { name: 'break_time_minutes', value: '' }
+            ];
+            
+            inputs.forEach(input => {
+                const element = document.createElement('input');
+                element.type = 'hidden';
+                element.name = input.name;
+                element.value = input.value;
+                form.appendChild(element);
+            });
+            
+            document.body.appendChild(form);
+            console.log('Submitting quick-add form...');
+            form.submit();
+            
+        } catch (error) {
+            console.error('Error creating quick-add form:', error);
+            alert('Error adding topic: ' + error.message);
+        }
+    }
+}
+
+function editTopic(topicId, currentName, currentDependencies) {
+    // Ensure topicId is an integer
+    topicId = parseInt(topicId);
+    console.log('Editing topic:', { topicId, currentName, currentDependencies });
+    console.log('Topic ID type:', typeof topicId, 'Value:', topicId);
+      // Parse dependencies if provided with robust error handling
+    let dependencies = [];
+    if (currentDependencies && currentDependencies !== '' && currentDependencies !== 'null') {
+        try {
+            const parsed = JSON.parse(currentDependencies);
+            dependencies = Array.isArray(parsed) ? parsed : [];
+            console.log('Successfully parsed dependencies:', dependencies);
+        } catch (e) {
+            console.log('Could not parse dependencies:', currentDependencies, 'Error:', e);
+            dependencies = [];
+        }
+    } else {
+        console.log('No dependencies provided or empty:', currentDependencies);
+    }
+    
+    console.log('Final dependencies array:', dependencies);
+    
+    // Remove any existing modals first
+    const existingModals = document.querySelectorAll('[style*="position: fixed"]');
+    existingModals.forEach(modal => modal.remove());
+    
+    // Create edit form modal
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+        background: rgba(0,0,0,0.5); display: flex; align-items: center; 
+        justify-content: center; z-index: 1000;
+    `;
+      modal.innerHTML = `
+        <div style="background: white; border-radius: 12px; max-width: 600px; width: 90%; max-height: 80vh; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.3); position: relative;">
+            <!-- Modal Header with Close Button -->
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 1.5rem 2rem 1rem; border-bottom: 1px solid #e9ecef; background: #f8f9fa; border-radius: 12px 12px 0 0;">
+                <h4 style="margin: 0; color: #2c3e50; font-size: 1.25rem; font-weight: 600;">
+                    <i class="fas fa-edit" style="margin-right: 0.5rem; color: #007bff;"></i>
+                    Edit Topic
+                </h4>
+                <button type="button" class="close-modal-btn" onclick="closeEditModal(this)" 
+                        style="background: none; border: none; font-size: 1.5rem; color: #6c757d; cursor: pointer; padding: 0.25rem; border-radius: 4px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease;"
+                        onmouseover="this.style.background='#e9ecef'; this.style.color='#dc3545';"
+                        onmouseout="this.style.background='none'; this.style.color='#6c757d';">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <!-- Modal Body -->
+            <div style="padding: 2rem; max-height: calc(80vh - 140px); overflow-y: auto;">
+                <form id="editTopicForm" action="/edit-topic/${topicId}" method="POST">
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #495057;">Topic Name</label>
+                        <input type="text" name="topic_name" value="${currentName}" 
+                               style="width: 100%; padding: 0.75rem; border: 2px solid #e9ecef; border-radius: 8px; font-size: 1rem; transition: border-color 0.2s ease;" 
+                               onfocus="this.style.borderColor='#007bff'; this.style.outline='none';"
+                               onblur="this.style.borderColor='#e9ecef';"
+                               required>
+                    </div>
+                      
+                    <div style="margin-bottom: 1.5rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #495057;">Prerequisites</label>
+                        <select id="edit-prerequisites-select" name="prerequisites" multiple
+                               style="width: 100%; padding: 0.5rem; border: 2px solid #e9ecef; border-radius: 8px; min-height: 100px; font-size: 0.95rem;">
+                        </select>
+                        <div style="margin-top: 0.5rem; font-size: 0.85rem; color: #6c757d;">
+                            <i class="fas fa-info-circle"></i> Hold Ctrl/Cmd to select multiple prerequisites. Leave empty if no prerequisites needed.
+                        </div>
+                    </div>
+                      
+                    <div id="break-times-section" style="margin-bottom: 1.5rem;">
+                        <!-- Break times will be populated dynamically -->
+                    </div>
+                </form>
+            </div>
+            
+            <!-- Modal Footer -->
+            <div style="padding: 1rem 2rem 1.5rem; border-top: 1px solid #e9ecef; background: #f8f9fa; border-radius: 0 0 12px 12px;">
+                <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                    <button type="button" onclick="closeEditModal(this)" 
+                            style="padding: 0.75rem 1.5rem; background: #6c757d; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 0.95rem; font-weight: 500; transition: all 0.2s ease;"
+                            onmouseover="this.style.background='#5a6268';"
+                            onmouseout="this.style.background='#6c757d';">
+                        <i class="fas fa-times" style="margin-right: 0.5rem;"></i>
+                        Cancel
+                    </button>
+                    <button type="submit" form="editTopicForm"
+                            style="padding: 0.75rem 1.5rem; background: #28a745; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 0.95rem; font-weight: 500; transition: all 0.2s ease;"
+                            onmouseover="this.style.background='#218838';"
+                            onmouseout="this.style.background='#28a745';">
+                        <i class="fas fa-save" style="margin-right: 0.5rem;"></i>
+                        Update Topic
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+      document.body.appendChild(modal);
+      // Get the prerequisites select element and break times section
+    const prerequisitesSelect = modal.querySelector('#edit-prerequisites-select');
+    const breakTimesSection = modal.querySelector('#break-times-section');    // Get the subject ID by querying the API
+    // We'll fetch the topic details first to get the subject ID
+    console.log('Fetching topic details for ID:', topicId);
+    fetch(`/api/topic/${topicId}`)
+        .then(response => {
+            console.log('Topic API response status:', response.status);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Topic data received:', data);
+            if (data.error) {
+                console.error('Error fetching topic:', data.error);
+                breakTimesSection.innerHTML = '<p style="color: #dc3545;">Error loading topic details. Please try again.</p>';
+                return;
+            }
+            
+            const subjectId = data.subject_id;
+            console.log('Subject ID:', subjectId);            // Fetch all topics in this subject and stored break times
+            console.log('Fetching topics and break times for subject:', subjectId);            Promise.all([
+                fetch(`/api/topics/${subjectId}`).then(response => {
+                    console.log('Topics API response status:', response.status);
+                    if (!response.ok) throw new Error(`Topics API failed: ${response.status} ${response.statusText}`);
+                    return response.json();
+                }),
+                fetch(`/api/break-times/${subjectId}`).then(response => {
+                    console.log('Break times API response status:', response.status);
+                    if (!response.ok) {
+                        // Log the actual response for debugging
+                        return response.text().then(text => {
+                            console.error('Break times API error response:', text);
+                            throw new Error(`Break times API failed: ${response.status} ${response.statusText} - ${text}`);
+                        });
+                    }
+                    return response.json();
+                })
+            ])
+            .then(([topicsData, breakTimesData]) => {
+                console.log('Topics data:', topicsData);
+                console.log('Break times data:', breakTimesData);
+                
+                if (topicsData.topics) {
+                    // Populate prerequisites dropdown
+                    const noneOption = document.createElement('option');
+                    noneOption.value = "";
+                    noneOption.text = "None (No prerequisites)";
+                    prerequisitesSelect.appendChild(noneOption);                    // Get other topics (excluding current topic)
+                    const otherTopics = topicsData.topics.filter(topic => topic.id != topicId);
+                    
+                    // Filter to only show topics that existed when the current topic was created
+                    // This means topics with lower IDs (created before) than the current topic
+                    const relevantTopics = otherTopics.filter(topic => topic.id < topicId);
+                    
+                    console.log('All other topics:', otherTopics);
+                    console.log('Relevant topics (created before current topic):', relevantTopics);                    // Add topics to prerequisites dropdown (use all other topics for prerequisites)
+                    otherTopics.forEach(topic => {
+                        const option = document.createElement('option');
+                        option.value = topic.id;
+                        option.text = topic.name;
+                        
+                        // Check if this topic is in dependencies (ensure type consistency)
+                        if (dependencies && Array.isArray(dependencies) && dependencies.includes(parseInt(topic.id))) {
+                            option.selected = true;
+                            console.log(`Selected prerequisite: ${topic.name} (ID: ${topic.id})`);
+                        }
+                        
+                        prerequisitesSelect.appendChild(option);
+                    });
+                      // Get stored break times
+                    const storedBreakTimes = breakTimesData.break_times || {};
+                    console.log('Loaded stored break times:', storedBreakTimes);
+                    console.log('Current topic ID for break times lookup:', topicId, typeof topicId);
+                    
+                    // Debug: Show all available keys in stored break times
+                    console.log('Available break time keys:', Object.keys(storedBreakTimes));
+                      // Populate break times section if there are relevant topics (only topics that existed when current topic was created)
+                    if (relevantTopics.length > 0) {                        let breakTimesHtml = `
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">
+                                <i class="fas fa-clock"></i> Break Times 
+                                <span style="font-weight: normal; color: #6c757d;">(Minutes needed between this topic and topics that existed when this topic was created - directional)</span>
+                            </label>
+                            <div class="break-times-container">
+                        `;                        relevantTopics.forEach(topic => {
+                            // Look for existing break time values (both directions)
+                            const breakTimeKey_to = `${topicId}_${topic.id}`;     // current topic TO other topic
+                            const breakTimeKey_from = `${topic.id}_${topicId}`;   // other topic TO current topic
+                            const existingBreakTime_to = storedBreakTimes[breakTimeKey_to] || '';
+                            const existingBreakTime_from = storedBreakTimes[breakTimeKey_from] || '';
+                            
+                            console.log(`Looking for break time keys:`);
+                            console.log(`  Key TO (${topicId} → ${topic.id}): "${breakTimeKey_to}" = ${existingBreakTime_to}`);
+                            console.log(`  Key FROM (${topic.id} → ${topicId}): "${breakTimeKey_from}" = ${existingBreakTime_from}`);
+                            console.log(`  Available in storage:`, storedBreakTimes[breakTimeKey_to] !== undefined, storedBreakTimes[breakTimeKey_from] !== undefined);
+                            
+                            breakTimesHtml += `
+                                <div class="break-time-item">
+                                    <div class="break-time-topic-header">
+                                        <strong>Break times with "${topic.name}"</strong>
+                                    </div>
+                                    
+                                    <!-- Break time FROM current topic TO other topic -->
+                                    <div class="break-time-direction">
+                                        <label class="break-time-label">
+                                            <i class="fas fa-arrow-right" style="color: #007bff;"></i>
+                                            From <strong>this topic</strong> → to "${topic.name}":
+                                        </label>
+                                        <div class="break-time-controls">
+                                            <div class="break-time-input">
+                                                <input type="number" class="form-input break-time-field" 
+                                                       name="break_time_to_${topic.id}" 
+                                                       value="${existingBreakTime_to}"
+                                                       min="0" max="120" step="1" placeholder="e.g., 10">
+                                            </div>
+                                            <div class="break-time-presets">
+                                                <button type="button" class="preset-btn" onclick="setEditDirectionalBreakTime('to_${topic.id}', 5)">5min</button>
+                                                <button type="button" class="preset-btn" onclick="setEditDirectionalBreakTime('to_${topic.id}', 10)">10min</button>
+                                                <button type="button" class="preset-btn" onclick="setEditDirectionalBreakTime('to_${topic.id}', 15)">15min</button>
+                                                <button type="button" class="preset-btn" onclick="setEditDirectionalBreakTime('to_${topic.id}', 30)">30min</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Break time FROM other topic TO current topic -->
+                                    <div class="break-time-direction">
+                                        <label class="break-time-label">
+                                            <i class="fas fa-arrow-left" style="color: #28a745;"></i>
+                                            From "${topic.name}" → to <strong>this topic</strong>:
+                                        </label>
+                                        <div class="break-time-controls">
+                                            <div class="break-time-input">
+                                                <input type="number" class="form-input break-time-field" 
+                                                       name="break_time_from_${topic.id}" 
+                                                       value="${existingBreakTime_from}"
+                                                       min="0" max="120" step="1" placeholder="e.g., 15">
+                                            </div>
+                                            <div class="break-time-presets">
+                                                <button type="button" class="preset-btn" onclick="setEditDirectionalBreakTime('from_${topic.id}', 5)">5min</button>
+                                                <button type="button" class="preset-btn" onclick="setEditDirectionalBreakTime('from_${topic.id}', 10)">10min</button>
+                                                <button type="button" class="preset-btn" onclick="setEditDirectionalBreakTime('from_${topic.id}', 15)">15min</button>
+                                                <button type="button" class="preset-btn" onclick="setEditDirectionalBreakTime('from_${topic.id}', 30)">30min</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                        
+                        breakTimesHtml += `
+                            </div>
+                            <div class="form-hint">
+                                <i class="fas fa-info-circle"></i>
+                                Set different break durations for each direction. For example: easy→hard topics may need longer breaks than hard→easy. Existing values are pre-filled.
+                            </div>                        `;
+                          breakTimesSection.innerHTML = breakTimesHtml;
+                    } else {
+                        breakTimesSection.innerHTML = '<p style="color: #6c757d; font-style: italic;">No topics existed when this topic was created, so no break times to configure.</p>';
+                    }
+                } else {
+                    console.warn('No topics data received');
+                    breakTimesSection.innerHTML = '<p style="color: #dc3545;">Error loading topics. Please try again.</p>';
+                }
+            })            .catch(error => {
+                console.error('Error fetching topics or break times:', error);
+                breakTimesSection.innerHTML = `
+                    <div style="color: #dc3545; background: #f8d7da; padding: 15px; border-radius: 8px; border: 1px solid #f5c6cb;">
+                        <h6 style="margin: 0 0 10px 0;"><i class="fas fa-exclamation-triangle"></i> Error Loading Data</h6>
+                        <p style="margin: 0; font-size: 0.9em;">${error.message}</p>
+                        <p style="margin: 10px 0 0 0; font-size: 0.85em; opacity: 0.8;">Please check the browser console for more details, or try refreshing the page.</p>
+                    </div>
+                `;
+            });
+        })
+        .catch(error => {
+            console.error('Error fetching topic details:', error);
+            breakTimesSection.innerHTML = '<p style="color: #dc3545;">Error loading topic details. Please refresh the page and try again.</p>';
+        });
+    
+    // Handle form submission
+    modal.querySelector('#editTopicForm').addEventListener('submit', function(e) {
+        console.log('Submitting topic edit form...');
+    });    // Close modal when clicking outside
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            closeEditModal(modal);
+        }
+    });
+    
+    // Close modal with ESC key
+    const handleEscKey = function(e) {
+        if (e.key === 'Escape') {
+            closeEditModal(modal);
+            document.removeEventListener('keydown', handleEscKey);
+        }
+    };
+    document.addEventListener('keydown', handleEscKey);
+}
+
+function toggleTopicCompletion(topicId, currentStatus) {
+    console.log('Toggling topic completion:', { topicId, currentStatus });
+    
+    fetch(`/toggle-topic/${topicId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Reload the page to show updated status
+            window.location.reload();
+        } else {
+            alert('Error updating topic status: ' + (data.message || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error updating topic status');
+    });
+}
+
+// Add form validation for manual topic addition
+document.addEventListener('DOMContentLoaded', function() {
+    // Add validation to topic forms
+    const topicForms = document.querySelectorAll('form[action*="add-topic"]');
+    topicForms.forEach(form => {
+        form.addEventListener('submit', function(e) {
+            console.log('Manual topic form submission');
+            
+            const topicName = form.querySelector('input[name="topic_name"]');
+            if (topicName && !topicName.value.trim()) {
+                e.preventDefault();
+                alert('Please enter a topic name');
+                topicName.focus();
+                return false;
+            }
+            
+            console.log('Topic form validation passed');
+        });
+    });
+    
+    // Add quick-add buttons functionality for common topics
+    const addQuickTopicButtons = function(subjectElement, subjectId) {
+        const quickTopicsDiv = subjectElement.querySelector('.quick-topics');
+        if (quickTopicsDiv) {
+            // Add some common topic suggestions based on subject name
+            const subjectName = subjectElement.querySelector('.subject-name')?.textContent?.toLowerCase() || '';
+            let suggestions = [];
+              if (subjectName.includes('data') || subjectName.includes('structure')) {
+                suggestions = [
+                    { name: 'Arrays' },
+                    { name: 'Linked Lists' },
+                    { name: 'Stacks' },
+                    { name: 'Queues' },
+                    { name: 'Binary Trees' },
+                    { name: 'Graphs' }
+                ];
+            } else if (subjectName.includes('algorithm')) {
+                suggestions = [
+                    { name: 'Sorting' },
+                    { name: 'Searching' },
+                    { name: 'Dynamic Programming' },
+                    { name: 'Greedy Algorithms' },
+                    { name: 'Divide and Conquer' }
+                ];
+            } else if (subjectName.includes('math')) {
+                suggestions = [
+                    { name: 'Linear Algebra' },
+                    { name: 'Calculus' },
+                    { name: 'Statistics' },
+                    { name: 'Probability' }
+                ];
+            } else {
+                // Generic suggestions
+                suggestions = [
+                    { name: 'Introduction' },
+                    { name: 'Basic Concepts' },
+                    { name: 'Advanced Topics' },
+                    { name: 'Practice Problems' }
+                ];
+            }
+              // Create quick-add buttons
+            const buttonsHtml = suggestions.map(topic => 
+                `<button type="button" class="quick-add-btn" 
+                         onclick="quickAddTopic(${subjectId}, '${topic.name}')">
+                    ${topic.name}
+                </button>`
+            ).join('');
+            
+            quickTopicsDiv.innerHTML = `
+                <div class="quick-add-section">
+                    <h6><i class="fas fa-zap"></i> Quick Add Common Topics</h6>
+                    <div class="quick-add-buttons">
+                        ${buttonsHtml}
+                    </div>
+                </div>
+            `;
+        }
+    };    // Add quick-add buttons to all subjects
+    document.querySelectorAll('.subject-card').forEach(subjectElement => {
+        const subjectId = subjectElement.querySelector('button[onclick*="toggleTopics"]')?.getAttribute('onclick')?.match(/\d+/)?.[0];
+        if (subjectId) {
+            addQuickTopicButtons(subjectElement, subjectId);
+        }
+    });
+
+    // Add event listeners for edit buttons
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.edit-btn')) {
+            const button = e.target.closest('.edit-btn');
+            const topicId = parseInt(button.getAttribute('data-topic-id'));
+            const topicName = button.getAttribute('data-topic-name');
+            const topicDependencies = button.getAttribute('data-topic-dependencies');
+            
+            console.log('Edit button clicked:', { topicId, topicName, topicDependencies });
+            editTopic(topicId, topicName, topicDependencies);
+        }
+    });
+});
+
+// Set break time from preset buttons
+function setBreakTime(minutes) {
+    const breakTimeInput = document.getElementById('break_time_minutes');
+    if (breakTimeInput) {
+        breakTimeInput.value = minutes;
+    }
+}
+
+// Set specific break time for a particular topic (deprecated - kept for compatibility)
+function setSpecificBreakTime(topicId, minutes) {
+    const breakTimeInput = document.querySelector(`input[name="break_time_${topicId}"]`);
+    if (breakTimeInput) {
+        breakTimeInput.value = minutes;
+    }
+}
+
+// Set directional break time for add topic form
+function setDirectionalBreakTime(direction, minutes) {
+    const breakTimeInput = document.querySelector(`input[name="break_time_${direction}"]`);
+    if (breakTimeInput) {
+        breakTimeInput.value = minutes;
+    }
+}
+
+// Set break time in edit modal (deprecated - kept for compatibility)
+function setEditBreakTime(topicId, minutes) {
+    const breakTimeInput = document.querySelector(`input[name="break_time_${topicId}"]`);
+    if (breakTimeInput) {
+        breakTimeInput.value = minutes;
+    }
+}
+
+// Set directional break time in edit modal
+function setEditDirectionalBreakTime(direction, minutes) {
+    const breakTimeInput = document.querySelector(`input[name="break_time_${direction}"]`);
+    if (breakTimeInput) {
+        breakTimeInput.value = minutes;
+    }
+}
+
+// Close edit modal function
+function closeEditModal(element) {
+    const modal = element.closest('[style*="position: fixed"]');
+    if (modal) {
+        // Add a smooth fade-out animation
+        modal.style.opacity = '0';
+        modal.style.transition = 'opacity 0.2s ease';
+        setTimeout(() => {
+            modal.remove();
+        }, 200);
+    }
+}
+</script>
+{% endblock %}

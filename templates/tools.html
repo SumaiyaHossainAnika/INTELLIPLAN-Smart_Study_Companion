@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}Study Tools - Intelliplan{% endblock %}
+
+{% block content %}
+<div class="tools-page">    <div class="page-header mb-3">
+        <h1><i class="fas fa-tools"></i> Study Tools</h1>
+        <p style="color: var(--text-light);">Essential tools to enhance your study experience</p>
+    </div>    <!-- Tools Container -->
+    <div class="tools-container">
+        <div class="tools-grid grid grid-3">        
+            <!-- Pomodoro Timer -->
+            <div class="tool-card card" style="background: linear-gradient(135deg, var(--secondary-color), var(--quaternary-color)); display: flex; flex-direction: column; align-items: center; justify-content: stretch;">
+                <div class="tool-icon" style="font-size: 4rem; text-align: center; margin-bottom: 1rem;">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div style="flex: 1 1 auto; display: flex; flex-direction: column; justify-content: flex-end; width: 100%;">
+                    <h3>Pomodoro Timer</h3>
+                    <div style="flex: 1 1 auto;"></div>
+                    <a href="{{ url_for('pomodoro') }}" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">
+                        Start Timer
+                    </a>
+                </div>
+            </div>
+              <!-- Quick Notes -->
+            <div class="tool-card card" style="background: linear-gradient(135deg, var(--secondary-color), var(--quaternary-color)); display: flex; flex-direction: column; align-items: center; justify-content: stretch;">
+                <div class="tool-icon" style="font-size: 4rem; text-align: center; margin-bottom: 1rem;">
+                    <i class="fas fa-sticky-note"></i>
+                </div>
+                <div style="flex: 1 1 auto; display: flex; flex-direction: column; justify-content: flex-end; width: 100%;">
+                    <h3>Quick Notes</h3>
+                    <div style="flex: 1 1 auto;"></div>
+                    <a href="{{ url_for('notes') }}" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">
+                        Open Notes
+                    </a>
+                </div>
+            </div>
+              <!-- Mind Map -->
+            <div class="tool-card card" style="background: linear-gradient(135deg, var(--secondary-color), var(--quaternary-color)); display: flex; flex-direction: column; align-items: center; justify-content: stretch;">
+                <div class="tool-icon" style="font-size: 4rem; text-align: center; margin-bottom: 1rem;">
+                    <i class="fas fa-project-diagram"></i>
+                </div>
+                <div style="flex: 1 1 auto; display: flex; flex-direction: column; justify-content: flex-end; width: 100%;">
+                    <h3>Mind Map</h3>
+                    <div style="flex: 1 1 auto;"></div>
+                    <a href="{{ url_for('mindmap') }}" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">
+                        View Mind Map
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.tool-card h3 {
+    color: var(--text-light);
+}
+ .page-header h1 {
+    color: var(--text-light);
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+}
+.tool-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    text-align: center;
+}
+
+.tool-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+}
+
+.tool-icon {
+    animation: pulse 3s infinite ease-in-out;
+}
+
+.feature-item {
+    transition: transform 0.2s ease;
+}
+
+.feature-item:hover {
+    transform: translateY(-3px);
+}
+
+/* Simple White Container for Tools */
+.tools-container {
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    margin-top: 1.5rem;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    border: 1px solid rgba(0,0,0,0.05);
+}
+</style>
+{% endblock %}

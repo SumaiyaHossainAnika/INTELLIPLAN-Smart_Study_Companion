@@ -1,0 +1,728 @@
+{% extends "base.html" %}
+
+{% block title %}Mind Map - Intelliplan{% endblock %}
+
+{% block content %}
+<div class="mindmap-page">
+    <div class="page-header mb-3">
+        <h1><i class="fas fa-project-diagram"></i> Mind Map</h1>
+        <p style="color: var(--text-light);">Interactive syllabus visualization using tree data structures</p>
+    </div>
+    
+    <!-- Subject Selection -->
+    <div class="card mb-3">
+        <h2><i class="fas fa-book"></i> Select Subject</h2>
+        <div class="subject-selector">
+            <select id="subjectSelect" class="form-control" onchange="loadTopics()" style="font-size: 1.1rem; padding: 1rem;">
+                <option value="">Choose a subject to view its mind map...</option>
+                {% for subject in subjects %}
+                <option value="{{ subject.id }}">{{ subject.name }}</option>
+                {% endfor %}
+            </select>
+            
+            {% if not subjects %}
+            <p style="color: var(--warning); margin-top: 1rem;">
+                No subjects found. <a href="{{ url_for('settings') }}" style="color: var(--senary-color);">Add subjects in Settings</a>
+            </p>
+            {% endif %}
+        </div>
+    </div>
+      <!-- Mind Map Visualization -->
+    <div class="card">        <div class="mindmap-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+            <h2 id="mapTitle">Mind Map Visualization</h2>
+            <div class="legend" style="display: flex; gap: 1rem; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <div style="width: 20px; height: 20px; background: var(--success); border-radius: 50%;"></div>
+                    <span>Completed</span>
+                </div>                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <div style="width: 20px; height: 20px; background: var(--yellow); border-radius: 50%;"></div>
+                    <span>Pending</span>
+                </div>
+            </div>
+        </div>
+          <div id="mindmapContainer" class="mindmap-container">
+            <div class="empty-mindmap text-center" style="padding: 4rem; color: var(--quinary-color);">
+                <div style="font-size: 4rem; margin-bottom: 1rem;"><i class="fas fa-sitemap"></i></div>
+                <h3>Select a Subject to View Topic Tree</h3>
+                <p>Interactive tree visualization of subject topics</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Tree Graph Visualization Class
+class TreeGraphVisualization {
+    constructor() {
+        this.nodes = new Map();
+        this.topicsData = [];
+    }    // Build dependency-based tree structure
+    buildTree(topics, subjectName) {
+        this.topicsData = topics;
+        this.nodes.clear();
+        
+        // Create subject node
+        const subjectNode = {
+            id: 'subject',
+            name: subjectName,
+            isCompleted: false,
+            level: 0,
+            type: 'subject',
+            children: [],
+            parents: []
+        };
+        
+        // Create topic nodes with dependency information
+        const topicNodes = topics.map((topic, index) => {
+            const node = {
+                id: topic.id,
+                name: topic.name,
+                isCompleted: topic.is_completed,
+                level: 1, // Will be calculated based on dependencies
+                type: 'topic',
+                index: index,
+                children: [],
+                parents: [],
+                prerequisites: topic.prerequisites || []
+            };
+            this.nodes.set(topic.id, node);
+            return node;
+        });
+        
+        // Build dependency relationships
+        this.buildDependencyTree(subjectNode, topicNodes);
+        
+        return { subjectNode, topicNodes };
+    }
+    
+    // Build dependency tree based on prerequisites
+    buildDependencyTree(subjectNode, topicNodes) {
+        // Create a map for quick lookup
+        const nodeMap = new Map();
+        nodeMap.set('subject', subjectNode);
+        topicNodes.forEach(node => nodeMap.set(node.id, node));
+        
+        // Process each topic to establish parent-child relationships
+        topicNodes.forEach(node => {
+            if (!node.prerequisites || node.prerequisites.length === 0) {
+                // No prerequisites - connect directly to subject
+                subjectNode.children.push(node);
+                node.parents.push(subjectNode);
+                node.level = 1;
+            } else {
+                // Has prerequisites - connect to prerequisite topics
+                node.prerequisites.forEach(prereqId => {
+                    const prereqNode = nodeMap.get(prereqId);
+                    if (prereqNode) {
+                        prereqNode.children.push(node);
+                        node.parents.push(prereqNode);
+                    }
+                });
+            }
+        });
+        
+        // Calculate levels based on dependency depth
+        this.calculateLevels(subjectNode);
+        
+        // Optimize tree structure to reduce crossing edges
+        this.optimizeTreeLayout(subjectNode, topicNodes);
+    }
+    
+    // Calculate levels for each node based on dependency depth
+    calculateLevels(rootNode) {
+        const visited = new Set();
+        const queue = [{node: rootNode, level: 0}];
+        
+        while (queue.length > 0) {
+            const {node, level} = queue.shift();
+            
+            if (visited.has(node.id)) continue;
+            visited.add(node.id);
+            
+            node.level = Math.max(node.level, level);
+            
+            // Process children
+            node.children.forEach(child => {
+                if (!visited.has(child.id)) {
+                    queue.push({node: child, level: level + 1});
+                }
+            });
+        }
+    }
+    
+    // Optimize tree layout to minimize edge crossings
+    optimizeTreeLayout(subjectNode, topicNodes) {
+        // Group nodes by level
+        const levelGroups = new Map();
+        const allNodes = [subjectNode, ...topicNodes];
+        
+        allNodes.forEach(node => {
+            if (!levelGroups.has(node.level)) {
+                levelGroups.set(node.level, []);
+            }
+            levelGroups.get(node.level).push(node);
+        });
+          // Simple horizontal indexing without cross connection minimization
+        levelGroups.forEach((nodes, level) => {
+            // Assign horizontal indices in original order
+            nodes.forEach((node, index) => {
+                node.horizontalIndex = index;
+            });
+        });
+        
+        return levelGroups;
+    }// Calculate positions for simple tree (subject at top, topics below in multiple rows)
+    calculatePositions(subjectNode, topicNodes) {
+        const containerWidth = this.container.clientWidth || 800;
+        const containerHeight = this.container.clientHeight || 600;
+        
+        const padding = 50;
+        const nodeSpacing = 200; // Horizontal spacing between nodes
+        const levelHeight = 140; // Vertical spacing between levels
+        const maxNodesPerRow = 3; // Maximum nodes per row
+        
+        // Position subject node at the top center
+        subjectNode.x = 0; // Center in SVG coordinate system
+        subjectNode.y = -150; // Top position
+        
+        // Calculate how many rows we need
+        const numRows = Math.ceil(topicNodes.length / maxNodesPerRow);
+        let totalHeight = 200 + (numRows - 1) * levelHeight;
+        
+        // Position topic nodes in multiple rows
+        topicNodes.forEach((node, index) => {
+            const row = Math.floor(index / maxNodesPerRow);
+            const positionInRow = index % maxNodesPerRow;
+            const nodesInThisRow = Math.min(maxNodesPerRow, topicNodes.length - row * maxNodesPerRow);
+            
+            // Calculate x position (center the row)
+            const rowWidth = (nodesInThisRow - 1) * nodeSpacing;
+            const startX = -rowWidth / 2;
+            node.x = startX + positionInRow * nodeSpacing;
+            
+            // Calculate y position
+            node.y = subjectNode.y + levelHeight + row * levelHeight;
+        });
+        
+        // Calculate total dimensions
+        const maxRowWidth = Math.min(maxNodesPerRow, topicNodes.length) * nodeSpacing;
+        const totalWidth = Math.max(800, maxRowWidth + 300);
+        
+        return {
+            totalWidth: totalWidth,
+            totalHeight: Math.max(400, totalHeight),
+            edges: topicNodes.map(topic => ({ from: subjectNode, to: topic }))
+        };
+    }// Render the tree graph
+    renderTreeGraph(container) {
+        container.innerHTML = '';
+        this.container = container;
+        
+        if (!this.topicsData || this.topicsData.length === 0) {
+            container.innerHTML = `
+                <div class="empty-mindmap text-center" style="padding: 4rem; color: var(--quinary-color);">
+                    <div style="font-size: 4rem; margin-bottom: 1rem;"><i class="fas fa-book-open"></i></div>
+                    <h3>No Topics Found</h3>
+                    <p>Add topics to this subject in the Settings page</p>
+                </div>
+            `;
+            return;
+        }
+        
+        // Build simple tree structure
+        const { subjectNode, topicNodes } = this.buildTree(this.topicsData, currentSubject.name);
+        const dimensions = this.calculatePositions(subjectNode, topicNodes);
+        
+        const svgContainer = document.createElement('div');
+        svgContainer.className = 'tree-graph-container';
+        
+        // Create SVG with dynamic sizing
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('class', 'tree-graph-svg');
+        
+        // Set viewBox based on content size with padding
+        const padding = 100;
+        const viewBoxWidth = Math.max(800, dimensions.totalWidth + padding * 2);
+        const viewBoxHeight = Math.max(400, dimensions.totalHeight + padding * 2);
+        
+        svg.setAttribute('viewBox', `${-viewBoxWidth/2} ${-viewBoxHeight/2} ${viewBoxWidth} ${viewBoxHeight}`);
+        svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+        
+        // Add edges first (connecting subject to all topics)
+        const edgesGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        edgesGroup.setAttribute('class', 'edges');
+        
+        dimensions.edges.forEach(edge => {
+            const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            line.setAttribute('x1', edge.from.x);
+            line.setAttribute('y1', edge.from.y + 35); // Adjust for node height
+            line.setAttribute('x2', edge.to.x);
+            line.setAttribute('y2', edge.to.y - 30); // Adjust for node height
+            line.setAttribute('class', 'tree-edge');
+            edgesGroup.appendChild(line);
+        });
+        
+        svg.appendChild(edgesGroup);
+        
+        // Add nodes
+        const nodesGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        nodesGroup.setAttribute('class', 'nodes');
+        
+        // Add subject node
+        const subjectGroup = this.createSubjectNode(subjectNode);
+        nodesGroup.appendChild(subjectGroup);
+        
+        // Add topic nodes
+        topicNodes.forEach(node => {
+            const nodeGroup = this.createSVGNode(node);
+            nodesGroup.appendChild(nodeGroup);
+        });
+        
+        svg.appendChild(nodesGroup);
+        svgContainer.appendChild(svg);
+        
+        container.appendChild(svgContainer);
+    }// Create subject node (root)
+    createSubjectNode(node) {
+        const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        group.setAttribute('class', 'tree-node-svg subject');
+        group.setAttribute('transform', `translate(${node.x}, ${node.y})`);
+        
+        // Subject node background (larger)
+        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        rect.setAttribute('x', -120);
+        rect.setAttribute('y', -35);
+        rect.setAttribute('width', 240);
+        rect.setAttribute('height', 70);
+        rect.setAttribute('rx', 15);
+        rect.setAttribute('class', 'subject-node-bg');
+        
+        group.appendChild(rect);
+          // Subject text
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', 0);
+        text.setAttribute('y', 0);
+        text.setAttribute('text-anchor', 'middle');
+        text.setAttribute('class', 'subject-text-svg');
+        text.setAttribute('pointer-events', 'none'); // Prevent text from interfering
+        
+        // Truncate long text
+        const maxLength = 30;
+        const displayText = node.name.length > maxLength ? 
+            node.name.substring(0, maxLength - 3) + '...' : 
+            node.name;
+        text.textContent = displayText;
+        
+        group.appendChild(text);
+        
+        return group;
+    }
+      // Create SVG node
+    createSVGNode(node) {
+        const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        group.setAttribute('class', `tree-node-svg topic`);
+        group.setAttribute('transform', `translate(${node.x}, ${node.y})`);
+        
+        // Node background
+        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        rect.setAttribute('x', -90);
+        rect.setAttribute('y', -30);
+        rect.setAttribute('width', 180);
+        rect.setAttribute('height', 60);
+        rect.setAttribute('rx', 12);
+        rect.setAttribute('class', node.isCompleted ? 'completed-node-bg' : 'pending-node-bg');
+        
+        group.appendChild(rect);
+        
+        // Node text
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', 0);
+        text.setAttribute('y', 5);
+        text.setAttribute('text-anchor', 'middle');
+        text.setAttribute('class', 'node-text-svg');
+        text.setAttribute('pointer-events', 'none'); // Prevent text from interfering with hover
+        
+        // Truncate long text
+        const maxLength = 20;
+        const displayText = node.name.length > maxLength ? 
+            node.name.substring(0, maxLength - 3) + '...' : 
+            node.name;
+        text.textContent = displayText;
+        
+        group.appendChild(text);
+        
+        // Add status icon
+        const icon = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        icon.setAttribute('x', 0);
+        icon.setAttribute('y', -10);
+        icon.setAttribute('text-anchor', 'middle');
+        icon.setAttribute('class', 'node-icon-svg');
+        icon.setAttribute('pointer-events', 'none'); // Prevent icon from interfering with hover
+        icon.textContent = node.isCompleted ? '✓' : '○';
+        
+        group.appendChild(icon);
+        
+        // Add click handler to the entire group
+        group.style.cursor = 'pointer';
+        group.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleTopic(node.id);
+        });
+        
+        return group;
+    }
+    
+    // Create HTML overlay for tooltips
+    createHTMLOverlay(overlay, nodes) {
+        // This can be used for future tooltip functionality
+    }
+    
+    // Update node status
+    updateNodeStatus(nodeId, isCompleted) {
+        const node = this.nodes.get(parseInt(nodeId));
+        if (node) {
+            node.isCompleted = isCompleted;
+            
+            // Update corresponding topic in data
+            const topic = this.topicsData.find(t => t.id === parseInt(nodeId));
+            if (topic) {
+                topic.is_completed = isCompleted;
+            }
+            
+            return true;
+        }
+        return false;
+    }
+}
+
+// Global variables
+let treeGraph = new TreeGraphVisualization();
+let currentSubject = null;
+
+// Load topics for selected subject
+function loadTopics() {
+    const subjectId = document.getElementById('subjectSelect').value;
+    const container = document.getElementById('mindmapContainer');
+      if (!subjectId) {
+        container.innerHTML = `
+            <div class="empty-mindmap text-center" style="padding: 4rem; color: var(--quinary-color);">
+                <div style="font-size: 4rem; margin-bottom: 1rem;"><i class="fas fa-sitemap"></i></div>
+                <h3>Select a Subject to View Mind Map</h3>
+                <p>Interactive tree visualization of subject topics</p>
+            </div>
+        `;
+        document.getElementById('mapTitle').textContent = 'Mind Map Visualization';
+        return;
+    }
+    
+    // Show loading
+    container.innerHTML = `
+        <div class="loading text-center" style="padding: 4rem;">
+            <div style="font-size: 2rem; margin-bottom: 1rem;"><i class="fas fa-spinner fa-spin"></i></div>
+            <p>Building topic tree...</p>
+        </div>
+    `;
+    
+    // Fetch topics
+    fetch(`/get-topics/${subjectId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                container.innerHTML = `
+                    <div class="error text-center" style="padding: 4rem; color: var(--error);">
+                        <div style="font-size: 4rem; margin-bottom: 1rem;"><i class="fas fa-exclamation-triangle"></i></div>
+                        <h3>Error Loading Topics</h3>
+                        <p>${data.error}</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            currentSubject = {
+                id: subjectId,
+                name: document.getElementById('subjectSelect').selectedOptions[0].text
+            };            // Build and render simple tree graph
+            treeGraph.topicsData = data.topics;
+            treeGraph.renderTreeGraph(container);
+            
+            document.getElementById('mapTitle').textContent = `${currentSubject.name} - Mind Map`;
+            
+            // Update statistics
+            updateStatistics(data.topics);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            container.innerHTML = `
+                <div class="error text-center" style="padding: 4rem; color: var(--error);">
+                    <div style="font-size: 4rem; margin-bottom: 1rem;"><i class="fas fa-exclamation-triangle"></i></div>
+                    <h3>Error Loading Topics</h3>
+                    <p>Please try again later.</p>
+                </div>
+            `;
+        });
+}
+
+// Toggle topic completion status
+function toggleTopic(topicId) {
+    fetch(`/toggle-topic/${topicId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Update local tree
+            treeGraph.updateNodeStatus(topicId, data.completed);
+            
+            // Re-render the tree
+            const container = document.getElementById('mindmapContainer');
+            treeGraph.renderTreeGraph(container);
+            
+            // Show success feedback
+            showNotification(data.completed ? 'Topic marked as completed!' : 'Topic marked as pending');
+            
+            // Update statistics
+            updateStatistics(treeGraph.topicsData);
+        } else {
+            alert('Error updating topic status');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error updating topic status');
+    });
+}
+
+// Update statistics display
+function updateStatistics(topics) {
+    const completed = topics.filter(t => t.is_completed).length;
+    const total = topics.length;
+    const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+    
+    // Add statistics to the header
+    const header = document.querySelector('.mindmap-header');
+    let statsElement = document.getElementById('mindmapStats');
+    
+    if (!statsElement) {
+        statsElement = document.createElement('div');
+        statsElement.id = 'mindmapStats';
+        statsElement.style.cssText = 'display: flex; gap: 1rem; align-items: center; font-weight: 600;';
+        header.appendChild(statsElement);
+    }    statsElement.innerHTML = `
+        <div style="background: var(--primary-color); color: white; padding: 0.5rem 1rem; border-radius: 8px; font-weight: 700;">
+            Progress: ${completed}/${total} (${percentage}%)
+        </div>
+    `;
+}
+
+// Show notification
+function showNotification(message) {
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: var(--success);
+        color: white;
+        padding: 1rem 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        z-index: 1000;
+        animation: slideIn 0.3s ease-out;
+    `;
+    notification.textContent = message;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.style.animation = 'slideOut 0.3s ease-out forwards';
+        setTimeout(() => {
+            document.body.removeChild(notification);
+        }, 300);
+    }, 3000);
+}
+
+// Add CSS animations
+const style = document.createElement('style');
+style.textContent = `
+@keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slideOut {
+    from { transform: translateX(0); opacity: 1; }
+    to { transform: translateX(100%); opacity: 0; }
+}
+`;
+document.head.appendChild(style);
+</script>
+
+<style>
+/* Tree Graph Visualization Styles */
+.tree-graph-container {
+    position: relative;
+    width: 100%;
+    height: 600px;
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    border-radius: 12px;
+    overflow: hidden;
+    border: 2px solid var(--tertiary-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.page-header h1{
+
+    color: var(--text-light);
+}
+
+.tree-graph-svg {
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+}
+
+.tree-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+/* SVG Node Styles - No hover scaling to prevent shaking */
+.tree-node-svg {
+    cursor: pointer;
+    transition: filter 0.2s ease;
+}
+
+.tree-node-svg:hover {
+    filter: brightness(1.1) drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+}
+
+.subject-node-bg {
+    fill: var(--primary-color);
+    stroke: var(--quaternary-color);
+    stroke-width: 3;
+    filter: drop-shadow(0 3px 6px rgba(0,0,0,0.2));
+    transition: filter 0.2s ease;
+}
+
+.subject-node-bg:hover {
+    filter: brightness(1.1) drop-shadow(0 3px 6px rgba(0,0,0,0.3));
+}
+
+.completed-node-bg {
+    fill: var(--success);
+    stroke: #4CAF50;
+    stroke-width: 2;
+    filter: drop-shadow(0 2px 4px rgba(76, 175, 80, 0.3));
+    transition: filter 0.2s ease;
+}
+
+.completed-node-bg:hover {
+    filter: brightness(1.1) drop-shadow(0 2px 4px rgba(76, 175, 80, 0.4));
+}
+
+.pending-node-bg {
+    fill: var(--yellow);
+    stroke: #F6B042;
+    stroke-width: 2;
+    filter: drop-shadow(0 2px 4px rgba(246, 176, 66, 0.3));
+    transition: filter 0.2s ease;
+}
+
+.pending-node-bg:hover {
+    filter: brightness(1.1) drop-shadow(0 2px 4px rgba(246, 176, 66, 0.4));
+}
+
+.node-text-svg {
+    fill: #ffffff;
+    font-family: 'Arial', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+    pointer-events: none;
+}
+
+.subject-text-svg {
+    fill: #ffffff;
+    font-family: 'Arial', sans-serif;
+    font-weight: 800;
+    font-size: 16px;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+    pointer-events: none;
+}
+
+.node-icon-svg {
+    fill: #ffffff;
+    font-family: 'Arial', sans-serif;
+    font-weight: 900;
+    font-size: 16px;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+    pointer-events: none;
+}
+
+.subject-icon-svg {
+    font-size: 20px;
+    pointer-events: none;
+}
+
+/* Tree Edges */
+.tree-edge {
+    stroke: var(--tertiary-color);
+    stroke-width: 3;
+    opacity: 0.7;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.1));
+}
+ .mindmap-container h3{
+        color: var(--senary-color);
+    }
+.mindmap-container p {
+    color: var(--senary-color);
+
+}
+.mindmap-container i {
+    color: var(--senary-color);
+
+}
+
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .tree-graph-container {
+        height: 500px;
+    }
+    
+    .legend {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .mindmap-header {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: flex-start !important;
+    }
+    
+    .node-text-svg {
+        font-size: 12px;
+    }
+    
+    .node-icon-svg {
+        font-size: 14px;
+    }
+    
+    .subject-text-svg {
+        font-size: 14px;
+    }
+   
+}
+</style>
+{% endblock %}

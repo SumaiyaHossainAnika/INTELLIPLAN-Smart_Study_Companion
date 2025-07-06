@@ -1,0 +1,585 @@
+{% extends "base.html" %}
+
+{% block title %}Pomodoro Timer - Intelliplan{% endblock %}
+
+{% block content %}
+<div class="pomodoro-page">    <div class="page-header mb-3 text-center">
+        <h1><i class="fas fa-clock"></i> Pomodoro Timer</h1>
+        <p style="color: var(--text-light);">Algorithm-optimized time management for peak productivity</p>
+    </div>
+    
+    <div class="timer-container">
+        <div class="card text-center" style="max-width: 500px; margin: 0 auto;">            <!-- Timer Display and Progress Ring -->
+            <div class="timer-progress-container" style="position: relative; margin: 2rem auto;">
+                <!-- Progress Ring -->
+                <svg width="200" height="200" style="display: block; margin: 0 auto;">
+                    <circle cx="100" cy="100" r="90" fill="none" stroke="var(--secondary-color)" stroke-width="10"/>
+                    <circle id="progressCircle" cx="100" cy="100" r="90" fill="none" stroke="var(--quaternary-color)" 
+                            stroke-width="10" stroke-dasharray="565.48" stroke-dashoffset="565.48" 
+                            style="transform: rotate(-90deg); transform-origin: 100px 100px; transition: stroke-dashoffset 1s linear;"/>
+                </svg>
+                <!-- Timer Display - Positioned on top of the ring -->
+                <div class="timer-display" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 3rem; font-weight: bold; color: var(--octonary-color);">
+                    <span id="timeDisplay">25:00</span>
+                </div>
+            </div>            
+            <!-- Timer Type -->
+            <div class="timer-type mb-3">
+                <h3 id="timerType" style="color: var(--senary-color);">Work Session</h3>
+                <div class="session-info" style="color: var(--secondary-color);">
+                    <span>Session <span id="sessionCount">1</span> | </span>
+                    <span id="timerPhase">Focus Time</span>
+                </div>
+            </div>
+              <!-- Timer Controls -->            <div class="timer-controls mb-3">
+                <button id="startBtn" class="btn btn-primary" onclick="startTimer()">Start</button>
+                <button id="pauseBtn" class="btn btn-warning" onclick="pauseTimer()" disabled>Pause</button>
+                <button id="resetBtn" class="btn btn-primary" onclick="resetTimer()">Reset</button>
+                <button id="skipBtn" class="btn btn-primary" onclick="skipSession()">Skip</button>
+            </div>
+              <!-- Timer Settings -->
+            <div class="timer-settings">
+                <!-- Settings sync status indicator -->
+                <div id="settingsStatus" style="font-size: 0.8rem; color: var(--quinary-color); margin-bottom: 0.5rem; opacity: 0; transition: opacity 0.3s ease;"></div>
+                
+                <details style="margin-top: 1rem;">
+                    <summary style="cursor: pointer; color: var(--secondary-color); font-weight: 500;"><i class="fas fa-cog"></i> Timer Settings</summary>
+                    <div style="margin-top: 1rem; text-align: left;">
+                        <div class="form-group">                            <label for="workDuration">Work Duration (minutes)</label>
+                            <input type="number" id="workDuration" class="form-control" min="1" max="60">
+                        </div>                        <div class="form-group">
+                            <label for="shortBreak">Short Break (minutes)</label>
+                            <input type="number" id="shortBreak" class="form-control" min="1" max="15">
+                        </div>
+                        <div class="form-group">
+                            <label for="longBreak">Long Break (minutes)</label>
+                            <input type="number" id="longBreak" class="form-control" min="15" max="30">
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="soundEnabled" checked> Enable Sound Notifications
+                            </label>
+                        </div>
+                    </div>
+                </details>
+            </div>
+        </div>
+        
+        <!-- Statistics -->        <div class="card mt-3" style="max-width: 500px; margin: 2rem auto 0;">
+            <h3><i class="fas fa-chart-bar"></i> Today's Statistics</h3>
+            <div class="stats-grid grid grid-3">
+                <div class="stat-item text-center">
+                    <div class="stat-number" id="completedSessions">0</div>
+                    <div class="stat-label">Completed</div>
+                </div>
+                <div class="stat-item text-center">
+                    <div class="stat-number" id="totalTime">0h</div>
+                    <div class="stat-label">Study Time</div>
+                </div>
+                <div class="stat-item text-center">
+                    <div class="stat-number" id="streakCount">0</div>
+                    <div class="stat-label">Streak</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+class PomodoroTimer {    constructor() {
+        console.log('PomodoroTimer constructor called');
+        this.workDuration = 0; // Load from settings
+        this.shortBreakDuration = 0; // Load from settings
+        this.longBreakDuration = 0; // Load from settings
+        this.currentDuration = this.workDuration;
+        this.timeLeft = this.workDuration;
+        this.isRunning = false;
+        this.sessionCount = 1;
+        this.isWorkSession = true;
+        this.completedSessions = 0;
+        this.totalStudyTime = 0; // in minutes
+        this.streak = 0;
+        this.timer = null;
+        
+        this.loadPomodoroSettings(); // Load settings from localStorage first
+        this.updateDisplay();
+        this.loadStatsFromServer(); // Load stats from server first, then fallback to localStorage
+        this.bindEvents();
+        console.log('PomodoroTimer constructor finished');
+    }bindEvents() {
+        // Update durations when settings change (real-time with 'input' events)
+        document.getElementById('workDuration').addEventListener('input', (e) => {
+            this.workDuration = parseInt(e.target.value) * 60;
+            if (this.isWorkSession && !this.isRunning) {
+                this.timeLeft = this.workDuration;
+                this.currentDuration = this.workDuration;
+                this.updateDisplay();
+            }
+            this.savePomodoroSettings(); // Save to localStorage
+        });
+        
+        document.getElementById('shortBreak').addEventListener('input', (e) => {
+            this.shortBreakDuration = parseInt(e.target.value) * 60;
+            this.savePomodoroSettings(); // Save to localStorage
+        });
+          document.getElementById('longBreak').addEventListener('input', (e) => {
+            this.longBreakDuration = parseInt(e.target.value) * 60;
+            this.savePomodoroSettings(); // Save to localStorage
+        });
+        
+        // Listen for storage changes to sync with settings page
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'pomodoroSettings') {
+                this.loadPomodoroSettings();
+                this.updateDisplay();
+            }
+        });
+        
+        // Also check for settings updates periodically (for same-tab updates)
+        setInterval(() => {
+            this.loadPomodoroSettings();
+        }, 2000); // Check every 2 seconds
+    }    savePomodoroSettings() {
+        const settings = {
+            workDuration: Math.floor(this.workDuration / 60),
+            shortBreak: Math.floor(this.shortBreakDuration / 60),
+            longBreak: Math.floor(this.longBreakDuration / 60),
+            sessionsBeforeLong: 0, // No default value
+            autoStartBreaks: false // Keep this boolean default
+        };
+        localStorage.setItem('pomodoroSettings', JSON.stringify(settings));
+        
+        // Trigger storage event for cross-tab sync
+        window.dispatchEvent(new StorageEvent('storage', {
+            key: 'pomodoroSettings',
+            newValue: JSON.stringify(settings),
+            storageArea: localStorage
+        }));
+        
+        console.log('Pomodoro settings saved from timer:', settings);
+    }
+    
+    start() {
+        this.isRunning = true;
+        document.getElementById('startBtn').disabled = true;
+        document.getElementById('pauseBtn').disabled = false;
+        
+        this.timer = setInterval(() => {
+            this.timeLeft--;
+            this.updateDisplay();
+            this.updateProgress();
+            
+            if (this.timeLeft <= 0) {
+                this.sessionComplete();
+            }
+        }, 1000);
+    }
+    
+    pause() {
+        this.isRunning = false;
+        clearInterval(this.timer);
+        document.getElementById('startBtn').disabled = false;
+        document.getElementById('pauseBtn').disabled = true;
+    }
+    
+    reset() {
+        this.pause();
+        this.timeLeft = this.currentDuration;
+        this.updateDisplay();
+        this.updateProgress();
+    }
+    
+    skip() {
+        this.pause();
+        this.sessionComplete();
+    }
+      sessionComplete() {
+        this.pause();
+        
+        if (this.isWorkSession) {
+            this.completedSessions++;
+            this.totalStudyTime += parseInt(document.getElementById('workDuration').value);
+            this.streak++;
+            this.saveSession(true);
+        }
+        
+        // Play notification sound (3 times)
+        if (document.getElementById('soundEnabled').checked) {
+            this.playNotification();
+        }
+        
+        // Show browser notification
+        this.showBrowserNotification();
+        
+        // Switch session type
+        this.switchSession();
+        this.updateStats();
+    }
+    
+    showBrowserNotification() {
+        if ('Notification' in window && Notification.permission === 'granted') {
+            const title = this.isWorkSession ? 'Work Session Complete!' : 'Break Time Over!';
+            const body = this.isWorkSession 
+                ? 'Great job! Time for a well-deserved break.' 
+                : 'Break time is over. Ready to get back to work?';
+            
+            const notification = new Notification(title, {
+                body: body,
+                icon: '/static/images/brain-icon.png',
+                badge: '/static/images/brain-icon.png',
+                tag: 'pomodoro-timer'
+            });
+            
+            // Auto-close after 5 seconds
+            setTimeout(() => notification.close(), 5000);
+        } else if ('Notification' in window && Notification.permission === 'default') {
+            // Request permission for future notifications
+            Notification.requestPermission();
+        }
+    }
+    
+    switchSession() {
+        if (this.isWorkSession) {
+            // Switch to break
+            this.isWorkSession = false;
+            const isLongBreak = this.sessionCount % 4 === 0;
+            this.currentDuration = isLongBreak ? this.longBreakDuration : this.shortBreakDuration;
+            this.timeLeft = this.currentDuration;
+            
+            document.getElementById('timerType').textContent = isLongBreak ? 'Long Break' : 'Short Break';
+            document.getElementById('timerPhase').textContent = 'Break Time';
+        } else {
+            // Switch to work
+            this.isWorkSession = true;
+            this.sessionCount++;
+            this.currentDuration = this.workDuration;
+            this.timeLeft = this.workDuration;
+            
+            document.getElementById('timerType').textContent = 'Work Session';
+            document.getElementById('timerPhase').textContent = 'Focus Time';
+        }
+        
+        document.getElementById('sessionCount').textContent = this.sessionCount;
+        this.updateDisplay();
+        this.updateProgress();
+    }
+    
+    updateDisplay() {
+        const minutes = Math.floor(this.timeLeft / 60);
+        const seconds = this.timeLeft % 60;
+        const display = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        document.getElementById('timeDisplay').textContent = display;
+        
+        // Update page title
+        document.title = `${display} - ${this.isWorkSession ? 'Work' : 'Break'} | Intelliplan`;
+    }
+    
+    updateProgress() {
+        const progress = ((this.currentDuration - this.timeLeft) / this.currentDuration) * 100;
+        const circumference = 2 * Math.PI * 90; // radius = 90
+        const offset = circumference - (progress / 100 * circumference);
+        document.getElementById('progressCircle').style.strokeDashoffset = offset;
+    }    updateStats() {
+        console.log('Updating stats display - completed:', this.completedSessions, 'time:', this.totalStudyTime, 'streak:', this.streak);
+        
+        // Wait for DOM elements to be available
+        const updateElements = () => {
+            const completedEl = document.getElementById('completedSessions');
+            const timeEl = document.getElementById('totalTime');
+            const streakEl = document.getElementById('streakCount');
+            
+            if (completedEl && timeEl && streakEl) {
+                completedEl.textContent = this.completedSessions;
+                timeEl.textContent = `${Math.floor(this.totalStudyTime / 60)}h ${this.totalStudyTime % 60}m`;
+                streakEl.textContent = this.streak;
+                console.log('Stats display updated successfully');
+            } else {
+                console.log('Stats elements not ready, retrying...');
+                setTimeout(updateElements, 100);
+            }
+        };
+        
+        updateElements();
+    }    loadStatsFromServer() {
+        console.log('Loading stats from server...');
+        fetch('/get-user-stats')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.stats) {
+                    console.log('Stats received from server:', data.stats);
+                    this.completedSessions = data.stats.completedSessions || 0;
+                    this.totalStudyTime = data.stats.totalStudyTime || 0;
+                    this.streak = data.stats.streak || 0;
+                    
+                    // Also save to localStorage for offline access
+                    localStorage.setItem('pomodoroStats', JSON.stringify(data.stats));
+                    this.updateStats();
+                    console.log('Stats loaded from server and synced to localStorage');
+                } else {
+                    console.log('No stats from server, falling back to localStorage');
+                    this.loadStats();
+                }
+            })
+            .catch(error => {
+                console.error('Error loading stats from server:', error);
+                console.log('Falling back to localStorage');
+                this.loadStats();
+            });
+    }
+
+    loadStats() {
+        console.log('Loading stats from localStorage...');
+        const saved = localStorage.getItem('pomodoroStats');
+        console.log('Raw localStorage data:', saved);
+        if (saved) {
+            const stats = JSON.parse(saved);
+            console.log('Parsed stats:', stats);
+            this.completedSessions = stats.completedSessions || 0;
+            this.totalStudyTime = stats.totalStudyTime || 0;
+            this.streak = stats.streak || 0;
+            console.log('Applied stats - completed:', this.completedSessions, 'time:', this.totalStudyTime, 'streak:', this.streak);
+            this.updateStats();
+        } else {
+            console.log('No saved stats found in localStorage');
+            // Make sure to still call updateStats to show 0s properly
+            this.updateStats();
+        }
+    }
+      loadPomodoroSettings() {        // Load settings from localStorage (saved from settings page)
+        const saved = localStorage.getItem('pomodoroSettings');
+        if (saved) {
+            const settings = JSON.parse(saved);
+            const newWorkDuration = (settings.workDuration || 0) * 60;
+            const newShortBreak = (settings.shortBreak || 0) * 60;
+            const newLongBreak = (settings.longBreak || 0) * 60;
+            
+            // Only update if values have changed
+            if (this.workDuration !== newWorkDuration || 
+                this.shortBreakDuration !== newShortBreak || 
+                this.longBreakDuration !== newLongBreak) {
+                
+                this.workDuration = newWorkDuration;
+                this.shortBreakDuration = newShortBreak;
+                this.longBreakDuration = newLongBreak;
+                
+                // Update the input fields in the UI
+                document.getElementById('workDuration').value = settings.workDuration || '';
+                document.getElementById('shortBreak').value = settings.shortBreak || '';
+                document.getElementById('longBreak').value = settings.longBreak || '';
+                
+                // Update current duration and time left if not running and it's a work session
+                if (!this.isRunning && this.isWorkSession) {
+                    this.currentDuration = this.workDuration;
+                    this.timeLeft = this.workDuration;
+                }
+                  console.log('Pomodoro settings synced from settings page');
+                
+                // Show sync status message
+                const statusElement = document.getElementById('settingsStatus');
+                statusElement.textContent = '⚙️ Settings synced from Settings page';
+                statusElement.style.opacity = '1';
+                setTimeout(() => {
+                    statusElement.style.opacity = '0';
+                }, 3000);
+            }
+        }
+    }
+      saveStats() {
+        const stats = {
+            completedSessions: this.completedSessions,
+            totalStudyTime: this.totalStudyTime,
+            streak: this.streak
+        };
+        console.log('Saving stats to localStorage:', stats);
+        localStorage.setItem('pomodoroStats', JSON.stringify(stats));
+        console.log('Stats saved to localStorage');
+    }
+    
+    saveSession(completed) {
+        // Save to backend
+        fetch('/save-session', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                duration: parseInt(document.getElementById('workDuration').value),
+                completed: completed
+            })
+        }).then(response => response.json())
+          .then(data => {
+              if (data.success) {
+                  this.saveStats();
+              }
+          }).catch(error => console.error('Error saving session:', error));
+    }
+      playNotification() {
+        // Play notification sound 3 times
+        this.playBellSound(0);
+    }
+    
+    playBellSound(count) {
+        if (count >= 3) return; // Stop after 3 rings
+        
+        // Create audio context for notification sound
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.value = 800;
+        oscillator.type = 'sine';
+        
+        gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+        gainNode.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + 0.1);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.6);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.6);
+        
+        // Schedule next bell sound with a short delay
+        setTimeout(() => {
+            this.playBellSound(count + 1);
+        }, 800); // 800ms delay between rings
+    }
+}
+
+// Initialize timer
+const pomodoro = new PomodoroTimer();
+
+// Debug function to create test data
+window.createTestData = function() {
+    const testStats = {
+        completedSessions: 5,
+        totalStudyTime: 125, // 2h 5m
+        streak: 5
+    };
+    localStorage.setItem('pomodoroStats', JSON.stringify(testStats));
+    console.log('Test data created:', testStats);
+    pomodoro.loadStats();
+};
+
+// Debug function to check localStorage
+window.checkLocalStorage = function() {
+    console.log('All localStorage items:');
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        const value = localStorage.getItem(key);
+        console.log(key + ':', value);
+    }
+};
+
+// Function to sync stats from server (for cross-device sync)
+window.syncStatsFromServer = function() {
+    pomodoro.loadStatsFromServer();
+};
+
+// Auto-sync stats on page load
+window.addEventListener('load', () => {
+    setTimeout(() => {
+        if (typeof syncStatsFromServer === 'function') {
+            syncStatsFromServer();
+        }
+    }, 1000);
+});
+
+// Force update stats on page load
+window.addEventListener('load', () => {
+    console.log('Window loaded, forcing stats update');
+    pomodoro.loadStatsFromServer();
+});
+
+// Also try updating stats on DOMContentLoaded
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM loaded, forcing stats update');
+    pomodoro.loadStatsFromServer();
+});
+
+// Global functions for buttons
+function startTimer() {
+    pomodoro.start();
+}
+
+function pauseTimer() {
+    pomodoro.pause();
+}
+
+function resetTimer() {
+    pomodoro.reset();
+}
+
+function skipSession() {
+    pomodoro.skip();
+}
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+    if (e.code === 'Space' && e.target.tagName !== 'INPUT') {
+        e.preventDefault();
+        if (pomodoro.isRunning) {
+            pauseTimer();
+        } else {
+            startTimer();
+        }
+    }
+});
+</script>
+
+<style>
+ .page-header h1 {
+    color: var(--text-light);
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+}
+.timer-display {
+    font-family: 'Courier New', monospace;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+    z-index: 10;
+}
+
+.timer-progress-container {
+    width: 200px;
+    height: 200px;
+}
+
+.progress-ring svg {
+    transform: rotate(-90deg);
+}
+
+.timer-controls {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.stat-number {
+    font-size: 2rem;
+    font-weight: bold;
+    color: var(--senary-color);
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    color: var(--senary-color);
+}
+
+@media (max-width: 768px) {
+    .timer-progress-container {
+        width: 150px;
+        height: 150px;
+    }
+    
+    .timer-progress-container svg {
+        width: 150px;
+        height: 150px;
+    }
+    
+    .timer-display {
+        font-size: 2rem !important;
+    }
+}
+</style>
+{% endblock %}

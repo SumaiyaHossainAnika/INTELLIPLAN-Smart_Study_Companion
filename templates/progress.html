@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block title %}Progress Tracking - Intelliplan{% endblock %}
+
+{% block content %}
+<div class="progress-page">
+    <div class="page-header mb-3">
+        <h1><i class="fas fa-chart-line"></i> Progress Tracking</h1>
+        <p style="color: var(--text-light);">Real-time analytics and study progress visualization</p>
+    </div>
+    
+    <!-- Study Statistics -->
+    <div class="card mb-3">
+        <h2><i class="fas fa-chart-bar"></i> Study Statistics</h2>
+        <div class="grid grid-3">
+            <div class="stat-card" style="background: linear-gradient(135deg, var(--secondary-color), var(--quaternary-color));">
+                <div class="stat-number">{{ total_hours }}</div>
+                <div class="stat-label">Total Study Hours</div>
+                <div style="font-size: 0.8rem; margin-top: 0.5rem; opacity: 0.7;">From Pomodoro sessions</div>
+            </div>
+            <div class="stat-card" style="background: linear-gradient(135deg, var(--secondary-color), var(--quaternary-color));">
+                <div class="stat-number">{{ total_sessions }}</div>
+                <div class="stat-label">Pomodoro Sessions</div>
+                <div style="font-size: 0.8rem; margin-top: 0.5rem; opacity: 0.7;">Completed focus sessions</div>
+            </div>
+            <div class="stat-card" style="background: linear-gradient(135deg, var(--secondary-color), var(--quaternary-color));">
+                <div class="stat-number">
+                    {% set total_completed = progress_data | sum(attribute='completed') %}
+                    {% set total_topics = progress_data | sum(attribute='total') %}
+                    {% if total_topics > 0 %}
+                        {{ "%.1f"|format((total_completed / total_topics) * 100) }}%
+                    {% else %}
+                        0%
+                    {% endif %}
+                </div>
+                <div class="stat-label">Overall Progress</div>
+                <div style="font-size: 0.8rem; margin-top: 0.5rem; opacity: 0.7;">Topics completed</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Subject Progress -->
+    <div class="card mb-3">
+        <h2><i class="fas fa-book"></i> Subject Progress Summary</h2>
+        {% if progress_data %}
+        <div class="subjects-progress">
+            {% for subject_data in progress_data %}
+            <div class="subject-progress-item">
+                <div class="subject-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <div>
+                        <h3 style="margin: 0; color: var(--octonary-color);">{{ subject_data.subject }}</h3>
+                        <p style="margin: 0.25rem 0 0 0; color: var(--octonary-color); font-size: 0.9rem;">
+                            {{ subject_data.completed }} of {{ subject_data.total }} topics completed
+                        </p>
+                    </div>
+                    <div class="percentage-badge" style="background: {% if subject_data.percentage >= 80 %}var(--success){% elif subject_data.percentage >= 50 %}var(--warning){% else %}var(--primary-color){% endif %}; color: white; padding: 0.5rem 1rem; border-radius: 20px; font-weight: bold;">
+                        {{ subject_data.percentage }}%
+                    </div>
+                </div>
+                
+                <div class="progress-bar">
+                    <div class="progress-fill" style="--progress-width: {{ subject_data.percentage }}%;"></div>
+                </div>
+                
+                <div class="progress-details" style="display: flex; justify-content: space-between; margin-top: 0.5rem; font-size: 0.8rem; color: var(--octonary-color);">                    <span><i class="fas fa-check-circle"></i> {{ subject_data.completed }} completed</span>
+                    <span><i class="fas fa-hourglass-half"></i> {{ subject_data.total - subject_data.completed }} remaining</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state text-center" style="padding: 3rem;">
+            <div style="font-size: 4rem; margin-bottom: 1rem;"><i class="fas fa-chart-bar"></i></div>
+            <h3>No Progress Data</h3>
+            <p>Start studying topics to see your progress here!</p>
+            <a href="{{ url_for('settings') }}" class="btn btn-primary mt-2">Add Subjects & Topics</a>
+        </div>
+        {% endif %}
+    </div>
+  
+  
+</div>
+
+<style>
+.stat-number{
+    color:white;
+}
+.stat-label{
+    color: var(--text-light);
+       font:600 1.2rem 'Poppins', sans-serif;
+}
+.subject-progress-item {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    transition: transform 0.2s ease;
+}
+
+.subject-progress-item:hover {
+    transform: translateY(-2px);
+}
+.page-header h1{
+    color: var(--text-light);
+}
+
+.percentage-badge {
+    font-size: 1.1rem;
+    min-width: 60px;
+    text-align: center;
+}
+
+/* Progress bar animation */
+@keyframes progressAnimation {
+    0% { width: 0%; }
+    100% { width: var(--progress-width, 0%); }
+}
+
+.progress-bar .progress-fill {
+    width: var(--progress-width, 0%);
+    animation: progressAnimation 2s ease-out;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .subject-header {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 1rem;
+    }
+    
+    .percentage-badge {
+        align-self: flex-end;
+    }
+    
+    .progress-details {
+        flex-direction: column !important;
+        gap: 0.25rem;
+    }
+}
+</style>
+{% endblock %}

@@ -1,0 +1,853 @@
+{% extends "base.html" %}
+{% block title %}Study Groups - Intelliplan{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="group-title-section">
+        <h1><i class="fas fa-users"></i> Study Groups</h1>
+        <p>Collaborate with peers and boost your learning together</p>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h3>My Groups</h3>                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createGroupModal">
+                        <i class="fas fa-plus"></i> Create Group
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="groupsList">
+                        <!-- Groups will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Join a Group</h3>
+                </div>
+                <div class="card-body">                    <form id="joinGroupForm">                        <div class="mb-3">
+                            <label for="groupCode" class="form-label">Group Code</label>
+                            <input type="text" class="form-control" id="groupCode" placeholder="Enter group code" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-sign-in-alt"></i> Join Group
+                        </button>
+                    </form></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create Group Modal -->
+<div class="modal fade" id="createGroupModal" tabindex="-1" aria-labelledby="createGroupModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createGroupModalLabel">Create Study Group</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="createGroupForm">                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="groupName" class="form-label">Group Name</label>
+                        <input type="text" class="form-control" id="groupName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="groupDescription" class="form-label">Description</label>
+                        <textarea class="form-control" id="groupDescription" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="groupPrivacy" class="form-label">Privacy</label>
+                        <select class="form-control" id="groupPrivacy">
+                            <option value="public">Public - Anyone can join</option>
+                            <option value="private">Private - Invite only</option>
+                        </select>
+                    </div>
+                </div>                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" id="createGroupBtn" class="btn btn-primary">Create Group</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Group Title Section */
+.group-title-section {
+    margin-bottom: 40px;
+}
+
+.group-title-section h1 {
+    color: var(--text-light);
+    font-size: 2.5rem;
+    margin-bottom: 0.8rem;
+    font-weight: 700;
+}
+
+.group-title-section p {
+    color: var(--text-light);
+    font-size: 1.2rem;
+}
+
+/* Group Items */
+.group-item {
+    background: #f8f9fa;
+    border: 1px solid #7494ec;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    transition: all 0.3s ease;
+}
+
+.group-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.group-info h4 {
+    color: var(--octonary-color);
+    margin-bottom: 8px;
+    font-weight: 600;
+}
+
+.group-info p {
+    color: var(--senary-color);
+    margin-bottom: 12px;
+    font-size: 0.95rem;
+}
+
+.group-meta {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.badge-subject {
+    background: var(--primary-color);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.member-count {
+    color: var(--senary-color);
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.member-count::before {
+    content: "👥";
+}
+
+.privacy-indicator {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.85rem;
+    color: var(--quinary-color);
+}
+
+.privacy-indicator.private {
+    color: #dc3545;
+}
+
+.privacy-indicator.public {
+    color: #28a745;
+}
+
+.group-actions {
+    display: flex;
+    gap: 8px;
+    flex-direction: column;
+}
+
+.group-actions .btn {
+    min-width: 80px;
+}
+
+/* Group Code Display */
+.group-code-display {
+    background: #f8f9fa;
+    border: 2px dashed #dee2e6;
+    border-radius: 8px;
+    padding: 20px;
+    margin: 20px 0;
+}
+
+.group-code-display code {
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    padding: 12px 20px;
+    font-size: 1.4rem;
+    font-weight: bold;
+    color: var(--primary-color);
+    letter-spacing: 2px;
+    display: inline-block;
+    margin-bottom: 15px;
+}
+
+/* Form Styling */
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    font-weight: 600;
+    color: var(--octonary-color);
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+.form-control {
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+    padding: 10px 15px;
+    transition: border-color 0.3s ease;
+}
+
+.form-control:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+/* Card Styling */
+.card {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    margin-bottom: 2rem;
+}
+
+.card-header {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: white;
+    border-radius: 12px 12px 0 0 !important;
+    border: none;
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.card-header h3 {
+    margin: 0;
+    font-weight: 600;
+}
+
+.card-body {
+    padding: 25px;
+    border: 2px solid #7494ec;
+    border-radius: 0 0 12px 12px !important;
+}
+
+/* Button Styling */
+.btn {
+    border-radius: 8px;
+    font-weight: 500;
+    padding: 8px 16px;
+    transition: all 0.3s ease;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    border: none;
+}
+
+.btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+}
+
+.btn-outline-secondary {
+    border-color: var(--secondary-color);
+    color: var(--secondary-color);
+}
+
+.btn-outline-secondary:hover {
+    background: var(--senary-color);
+    border-color: #adb5bd;
+}
+
+/* Alert Styling */
+.alert {
+    border-radius: 8px;
+    border: none;
+    margin-bottom: 20px;
+}
+
+/* Modal Fixes */
+.modal {
+    z-index: 1055 !important;
+    padding-right: 0 !important;
+}
+
+.modal-backdrop {
+    z-index: 1050 !important;
+    background-color: rgba(0, 0, 0, 0.5) !important;
+    border: 2px solid #7494ec;
+}
+
+.modal-dialog {
+    max-width: 500px;
+    margin: 1.75rem auto;
+
+}
+
+.modal-content {
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    position: relative;
+}
+
+.modal-header {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: white;
+    border-radius: 12px 12px 0 0;
+    border-bottom: none;
+    padding: 1rem;
+}
+
+.modal-header .btn-close {
+    padding: 0.5rem;
+    color: white;
+    opacity: 0.8;
+    font-size: 1.2rem;
+    background: transparent url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='white'%3e%3cpath d='M.293.293a1 1 0 011.414 0L8 6.586 14.293.293a1 1 0 111.414 1.414L9.414 8l6.293 6.293a1 1 0 01-1.414 1.414L8 9.414l-6.293 6.293a1 1 0 01-1.414-1.414L6.586 8 .293 1.707a1 1 0 010-1.414z'/%3e%3c/svg%3e") center/1em auto no-repeat;
+}
+
+.modal-header .btn-close:hover {
+    opacity: 1;
+}
+
+.modal-body {
+    padding: 1.5rem;
+    border:#7494ec;
+}
+
+.modal-footer {
+    border-top: 1px solid #dee2e6;
+    padding: 1rem 1.5rem;
+    background: #f8f9fa;
+    border-radius: 0 0 12px 12px;
+}
+
+/* Ensure modal is properly positioned */
+@media (max-width: 576px) {
+    .modal-dialog {
+        margin: 10px;
+        max-width: calc(100% - 20px);
+    }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .group-item {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .group-actions {
+        flex-direction: row;
+        width: 100%;
+    }
+    
+    .group-actions .btn {
+        flex: 1;
+    }
+    
+    .card-header {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+    }
+}
+</style>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 DOM Content Loaded - Initializing groups page');
+    loadGroups();      // Initialize Socket.IO for real-time group updates with ngrok compatibility
+    if (typeof io !== 'undefined') {
+        const socket = io(window.location.origin, {
+            transports: ['polling', 'websocket']
+        });
+        
+        // Listen for group member updates
+        socket.on('user_joined', function(data) {
+            console.log('👤 User joined group:', data);
+            // Reload groups to update member counts
+            loadGroups();
+        });
+        
+        socket.on('user_left', function(data) {
+            console.log('👤 User left group:', data);
+            // Reload groups to update member counts
+            loadGroups();
+        });
+        
+        // Listen for general group updates
+        socket.on('group_updated', function(data) {
+            console.log('🔄 Group updated:', data);
+            // Reload groups to reflect changes
+            loadGroups();
+        });
+    }
+    
+    // Initialize modals
+    const createModalEl = document.getElementById('createGroupModal');
+    if (createModalEl) {
+        // Reset form when modal is closed
+        createModalEl.addEventListener('hidden.bs.modal', function() {
+            console.log('Modal closed - resetting form');
+            document.getElementById('createGroupForm').reset();
+        });
+    }
+    
+    // Create group form setup
+    const createForm = document.getElementById('createGroupForm');
+    if (createForm) {
+        // Prevent form submission - handle with button click instead
+        createForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            console.log('📝 Form submission prevented');
+        });
+        
+        // Connect the create button
+        const createGroupBtn = document.getElementById('createGroupBtn');
+        if (createGroupBtn) {
+            createGroupBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                console.log('🖱️ Create group button clicked');
+                createGroup();
+            });
+        }
+    }
+    
+    // Join group form submission
+    const joinForm = document.getElementById('joinGroupForm');
+    if (joinForm) {
+        joinForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            console.log('Join group form submitted');
+            joinGroup();
+        });
+    }
+});
+
+function loadGroups() {
+    console.log('🔄 Loading groups...');
+    
+    fetch('/api/groups')
+        .then(response => {
+            console.log('📡 Response status:', response.status);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('📥 Groups data:', data);
+            const groupsList = document.getElementById('groupsList');
+            
+            if (!data.success || !data.groups || data.groups.length === 0) {
+                groupsList.innerHTML = '<p class="text-center text-muted">No groups found. Create or join a group to get started!</p>';
+                return;
+            }
+
+            groupsList.innerHTML = data.groups.map(group => `
+                <div class="group-item">
+                    <div class="group-info">
+                        <h4>${escapeHtml(group.name)}</h4>
+                        <p>${escapeHtml(group.description) || 'No description'}</p>
+                        <div class="group-meta">
+                            <span class="badge badge-subject">${escapeHtml(group.subject)}</span>
+                            <span class="member-count">${group.member_count || 1} members</span>
+                            <span class="privacy-indicator ${group.is_private ? 'private' : 'public'}">
+                                <i class="fas fa-${group.is_private ? 'lock' : 'globe'}"></i>
+                                ${group.is_private ? 'Private' : 'Public'}
+                            </span>
+                        </div>
+                    </div>                    <div class="group-actions">
+                        <a href="/groups/${group.id}/chat" class="btn btn-primary btn-sm">
+                            <i class="fas fa-comments"></i> Chat
+                        </a>
+                        <button class="btn btn-outline-secondary btn-sm" onclick="showGroupCode('${escapeHtml(group.code)}')">
+                            <i class="fas fa-share"></i> Share
+                        </button>
+                        ${group.is_creator ? `
+                        <button class="btn btn-outline-danger btn-sm" onclick="confirmDeleteGroup(${group.id}, '${escapeHtml(group.name)}')">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                        ` : `
+                        <button class="btn btn-outline-warning btn-sm" onclick="confirmLeaveGroup(${group.id}, '${escapeHtml(group.name)}')">
+                            <i class="fas fa-sign-out-alt"></i> Leave
+                        </button>
+                        `}
+                    </div>
+                </div>
+            `).join('');
+        })
+        .catch(error => {
+            console.error('❌ Error loading groups:', error);
+            showAlert('Error loading groups: ' + error.message, 'error');
+        });
+}
+
+function createGroup() {
+    console.log('🚀 createGroup function called');
+    
+    // Get form data
+    const groupName = document.getElementById('groupName');
+    const groupDescription = document.getElementById('groupDescription');
+    const groupPrivacy = document.getElementById('groupPrivacy');
+    
+    // Validate required fields
+    if (!groupName || !groupName.value.trim()) {
+        console.error('Group name is required');
+        showAlert('Group name is required', 'error');
+        return;
+    }
+    
+    // Prepare form data
+    const formData = {
+        name: groupName.value.trim(),
+        description: groupDescription ? groupDescription.value.trim() : '',
+        subject: "General", // Default subject
+        is_private: groupPrivacy ? groupPrivacy.value === 'private' : false
+    };
+
+    console.log('📝 Sending group data:', formData);
+    
+    // Show loading state
+    const createButton = document.getElementById('createGroupBtn');
+    const originalText = createButton.innerHTML;
+    createButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
+    createButton.disabled = true;
+    
+    fetch('/api/groups', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)
+    })
+    .then(response => {
+        console.log('📡 Response status:', response.status);
+        
+        if (!response.ok) {
+            throw new Error(`Server responded with status: ${response.status}`);
+        }
+        
+        return response.json();
+    })
+    .then(data => {
+        console.log('📥 Response data:', data);
+        
+        if (data.success) {
+            console.log('✅ Group created successfully!');
+            showAlert(`Group "${data.group.name}" created successfully! Share code: ${data.group.code}`, 'success');
+            
+            // Hide modal
+            const modalElement = document.getElementById('createGroupModal');
+            const modal = bootstrap.Modal.getInstance(modalElement) || new bootstrap.Modal(modalElement);
+            modal.hide();
+            
+            // Reset form and reload groups
+            document.getElementById('createGroupForm').reset();
+            loadGroups();
+        } else {
+            throw new Error(data.message || 'Unknown error creating group');
+        }
+    })
+    .catch(error => {
+        console.error('❌ Error creating group:', error);
+        showAlert('Error creating group: ' + error.message, 'error');
+    })
+    .finally(() => {
+        // Reset button state
+        createButton.innerHTML = originalText;
+        createButton.disabled = false;
+    });
+}
+
+function joinGroup() {
+    console.log('🚀 joinGroup function called');
+    
+    const codeInput = document.getElementById('groupCode');
+    const code = codeInput.value.trim();
+    
+    if (!code) {
+        showAlert('Please enter a group code', 'error');
+        return;
+    }
+    
+    console.log('🔑 Joining group with code:', code);
+    
+    // Show loading state
+    const joinButton = document.querySelector('#joinGroupForm button[type="submit"]');
+    const originalText = joinButton.innerHTML;
+    joinButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Joining...';
+    joinButton.disabled = true;
+    
+    fetch('/api/groups/join', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ code: code })
+    })
+    .then(response => {
+        console.log('📡 Join response status:', response.status);
+        return response.json();
+    })
+    .then(data => {
+        console.log('📥 Join response data:', data);
+        
+        if (data.success) {
+            showAlert('Successfully joined the group!', 'success');
+            document.getElementById('joinGroupForm').reset();
+            loadGroups();
+        } else {
+            showAlert(data.message || 'Error joining group', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('❌ Error joining group:', error);
+        showAlert('Error joining group: ' + error.message, 'error');
+    })
+    .finally(() => {
+        // Reset button state
+        joinButton.innerHTML = originalText;
+        joinButton.disabled = false;
+    });
+}
+
+function confirmDeleteGroup(groupId, groupName) {
+    if (confirm(`Are you sure you want to delete the group "${groupName}"? This action cannot be undone.`)) {
+        deleteGroup(groupId);
+    }
+}
+
+function deleteGroup(groupId) {
+    console.log('🗑️ Deleting group:', groupId);
+    
+    fetch(`/api/groups/${groupId}`, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        credentials: 'same-origin'  // Include session cookies
+    })
+    .then(response => {
+        console.log('📡 Delete response status:', response.status);
+        console.log('📡 Delete response headers:', response.headers);
+        
+        // Check if response is actually JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            throw new Error('Server returned non-JSON response (possibly redirected to login)');
+        }
+        
+        return response.json();
+    })
+    .then(data => {
+        console.log('📥 Delete response data:', data);
+        
+        if (data.success) {
+            showAlert('Group deleted successfully!', 'success');
+            loadGroups(); // Reload the groups list
+        } else {
+            showAlert(data.message || 'Error deleting group', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('❌ Error deleting group:', error);
+        if (error.message.includes('redirected to login')) {
+            showAlert('Please log in again to delete groups', 'error');
+            // Optionally redirect to login page
+            // window.location.href = '/login';
+        } else {
+            showAlert('Error deleting group: ' + error.message, 'error');
+        }
+    });
+}
+
+function confirmLeaveGroup(groupId, groupName) {
+    if (confirm(`Are you sure you want to leave the group "${groupName}"?`)) {
+        leaveGroup(groupId);
+    }
+}
+
+function leaveGroup(groupId) {
+    console.log('🚪 Leaving group:', groupId);
+    
+    fetch(`/api/groups/${groupId}/leave`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        credentials: 'same-origin'
+    })
+    .then(response => {
+        console.log('📡 Leave response status:', response.status);
+        
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            throw new Error('Server returned non-JSON response (possibly redirected to login)');
+        }
+        
+        return response.json();
+    })
+    .then(data => {
+        console.log('📥 Leave response data:', data);
+        
+        if (data.success) {
+            if (data.group_deleted) {
+                showAlert('You left the group and it was deleted since no members remained.', 'info');
+            } else {
+                showAlert('Successfully left the group!', 'success');
+            }
+            loadGroups(); // Reload the groups list
+        } else {
+            showAlert(data.message || 'Error leaving group', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('❌ Error leaving group:', error);
+        if (error.message.includes('redirected to login')) {
+            showAlert('Please log in again to leave groups', 'error');
+        } else {
+            showAlert('Error leaving group: ' + error.message, 'error');
+        }
+    });
+}
+
+function showGroupCode(code) {
+    const modalId = 'shareModal_' + Date.now();
+    const modalHtml = `
+        <div class="modal fade" id="${modalId}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Share Group Code</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body text-center">
+                        <p>Share this code with others to let them join your group:</p>
+                        <div class="group-code-display">
+                            <code>${escapeHtml(code)}</code>
+                            <br>
+                            <button class="btn btn-sm btn-outline-primary mt-2" onclick="copyToClipboard('${escapeHtml(code)}')">
+                                <i class="fas fa-copy"></i> Copy Code
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Add modal to body
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    // Show modal
+    const modalElement = document.getElementById(modalId);
+    const modal = new bootstrap.Modal(modalElement);
+    modal.show();
+    
+    // Remove modal from DOM when hidden
+    modalElement.addEventListener('hidden.bs.modal', function() {
+        modalElement.remove();
+    });
+}
+
+function copyToClipboard(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(function() {
+            showAlert('Code copied to clipboard!', 'success');
+        }).catch(function(err) {
+            console.error('Failed to copy: ', err);
+            fallbackCopyTextToClipboard(text);
+        });
+    } else {
+        fallbackCopyTextToClipboard(text);
+    }
+}
+
+function fallbackCopyTextToClipboard(text) {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.top = "0";
+    textArea.style.left = "0";
+    textArea.style.position = "fixed";
+    
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    
+    try {
+        document.execCommand('copy');
+        showAlert('Code copied to clipboard!', 'success');
+    } catch (err) {
+        console.error('Fallback: Unable to copy', err);
+        showAlert('Unable to copy code. Please copy manually: ' + text, 'info');
+    }
+    
+    document.body.removeChild(textArea);
+}
+
+function showAlert(message, type) {
+    // Remove existing alerts
+    const existingAlerts = document.querySelectorAll('.alert');
+    existingAlerts.forEach(alert => alert.remove());
+    
+    const alertClass = type === 'error' ? 'danger' : type;
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${alertClass} alert-dismissible fade show`;
+    alertDiv.style.position = 'fixed';
+    alertDiv.style.top = '20px';
+    alertDiv.style.right = '20px';
+    alertDiv.style.zIndex = '9999';
+    alertDiv.style.minWidth = '300px';
+    alertDiv.innerHTML = `
+        ${escapeHtml(message)}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    `;
+    
+    document.body.appendChild(alertDiv);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.remove();
+        }
+    }, 5000);
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    };
+    return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+}
+</script>
+{% endblock %}

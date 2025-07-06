@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+
+{% block title %}Study Plans - Intelliplan{% endblock %}
+
+{% block content %}
+<div class="study-plans">    <div class="page-header mb-3">
+        <h1><i class="fas fa-book"></i> Study Plans</h1>
+        <p style="color: var(--text-light);">Create and manage your algorithmic study plans</p>
+    </div>
+    
+    <!-- Create New Plan -->
+    <div class="card mb-3">
+        <h2>Create New Study Plan</h2>
+        <form method="POST" action="{{ url_for('create_plan') }}">
+            <div class="form-group">
+                <label for="plan_name">Plan Name</label>
+                <input type="text" id="plan_name" name="plan_name" class="form-control" placeholder="example: Data Structures Mastery" required>
+            </div>            <div class="form-group">
+                <label>Select Subject <span style="color: var(--primary-color); font-size: 0.9rem; font-weight: 600;">(Choose only one)</span></label><div class="subjects-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; margin-top: 0.5rem;">
+                    {% for subject in subjects %}                    <label class="subject-radio" style="display: flex; align-items: center; padding: 0.75rem; background: var(--primary-color); border-radius: 8px; cursor: pointer; transition: all 0.3s ease; border: 2px solid transparent;">
+                        <input type="radio" name="subjects" value="{{ subject.id }}" style="margin-right: 0.75rem; transform: scale(1.2);" required>
+                        <span style="font-weight: 500; color: white;">{{ subject.name }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+                {% if not subjects %}
+                <p style="color: var(--warning); margin-top: 0.5rem;">
+                    No subjects found. <a href="{{ url_for('settings') }}" style="color: var(--septenary-color);">Add subjects in Settings</a>
+                </p>
+                {% endif %}
+            </div>
+            
+            <button type="submit" class="btn btn-primary">Create Plan</button>
+        </form>
+    </div>
+    
+    <!-- Existing Plans -->
+    <div class="card">
+        <h2>Your Study Plans</h2>
+        {% if plans %}
+        <div class="plans-list">            {% for plan in plans %}
+            <div class="plan-item" style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; border-bottom: 1px solid var(--secondary-color); background: white; margin-bottom: 0.5rem; border-radius: 8px;">
+                <div>
+                    <h3 style="margin: 0; color: var(--octonary-color);">{{ plan.name }}</h3>
+                    <p style="margin: 0.5rem 0 0 0; color: var(--septenary-color); font-size: 0.9rem;">
+                        Created: {{ plan.created_at.strftime('%B %d, %Y') }}
+                    </p>
+                </div>
+                <div class="plan-actions" style="display: flex; gap: 0.5rem; align-items: center;">
+                    <a href="{{ url_for('view_plan', plan_id=plan.id) }}" class="btn btn-secondary">View Plan</a>
+                    <form method="POST" action="{{ url_for('delete_plan', plan_id=plan.id) }}" style="display: inline;" onsubmit="return confirmDelete('{{ plan.name }}')">
+                        <button type="submit" class="btn btn-danger" style="background: #e74c3c; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; gap: 0.25rem;" 
+                                onmouseover="this.style.background='#c0392b'" 
+                                onmouseout="this.style.background='#e74c3c'">
+                            <i class="fas fa-trash"></i>
+                            Delete
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}        <div class="empty-state text-center" style="padding: 2rem;">
+            <div style="font-size: 4rem; margin-bottom: 1rem;"><i class="fas fa-clipboard-list"></i></div>
+            <h3>No Study Plans Yet</h3>
+            <p>Create your first study plan to get started with algorithmic learning!</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.page-header h1 {
+    color: var(--text-light);
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.subject-radio:hover {
+    background: var(--secondary-color) !important;
+    transform: translateY(-1px);
+    border-color: var(--tertiary-color) !important;
+}
+
+.subject-radio:has(input[type="radio"]:checked) {
+    background: var(--quaternary-color) !important;
+    border-color: var(--senary-color) !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.plan-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+}
+
+/* Notification styles */
+.notification {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    background: white;
+    color: var(--primary-color);
+    padding: 1rem 1.5rem;
+    border-radius: 8px;
+    border: 2px solid var(--primary-color);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    z-index: 1000;
+    transform: translateX(400px);
+    opacity: 0;
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+.notification.show {
+    transform: translateX(0);
+    opacity: 1;
+}
+
+.notification.hide {
+    transform: translateX(400px);
+    opacity: 0;
+}
+
+/* Mobile responsive plan actions */
+@media (max-width: 768px) {
+    .plan-item {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 1rem;
+    }
+    
+    .plan-actions {
+        width: 100%;
+        justify-content: space-between !important;
+    }
+    
+    .plan-actions .btn {
+        flex: 1;
+        text-align: center;
+        margin: 0 0.25rem;
+    }
+}
+</style>
+
+<script>
+// Confirmation function for delete
+function confirmDelete(planName) {
+    return confirm(`Are you sure you want to delete the study plan "${planName}"? This action cannot be undone.`);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const radioButtons = document.querySelectorAll('input[type="radio"][name="subjects"]');
+    let lastSelected = null;
+      radioButtons.forEach(radio => {
+        radio.addEventListener('change', function() {
+            // Reset all radio button styles
+            radioButtons.forEach(r => {
+                r.parentElement.style.background = 'var(--primary-color)';
+                r.parentElement.style.borderColor = 'transparent';
+                r.parentElement.style.boxShadow = 'none';
+            });
+            
+            if (this.checked) {
+                // Style the selected radio button
+                this.parentElement.style.background = 'var(--quaternary-color)';
+                this.parentElement.style.borderColor = 'var(--senary-color)';
+                this.parentElement.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
+                
+                // Show notification if switching from another selection
+                if (lastSelected && lastSelected !== this) {
+                    showNotification('You can only choose one subject per study plan');
+                }
+                lastSelected = this;
+            }
+        });
+    });
+    
+    function showNotification(message) {
+        // Remove existing notification if any
+        const existingNotification = document.querySelector('.notification');
+        if (existingNotification) {
+            existingNotification.remove();
+        }
+        
+        // Create new notification
+        const notification = document.createElement('div');
+        notification.className = 'notification';
+        notification.innerHTML = `
+            <div style="display: flex; align-items: center;">
+                <i class="fas fa-info-circle" style="margin-right: 0.5rem;"></i>
+                ${message}
+            </div>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // Show notification with animation
+        setTimeout(() => {
+            notification.classList.add('show');
+        }, 10);
+        
+        // Hide notification after 3 seconds
+        setTimeout(() => {
+            notification.classList.add('hide');
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.remove();
+                }
+            }, 300);
+        }, 3000);
+    }
+});
+</script>
+{% endblock %}
