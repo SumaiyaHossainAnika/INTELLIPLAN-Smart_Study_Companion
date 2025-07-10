@@ -9,9 +9,6 @@
 [![CSS3](https://img.shields.io/badge/CSS3-1572b6?style=for-the-badge&logo=css3&logoColor=white)](https://www.w3.org/Style/CSS/)
 [![JavaScript](https://img.shields.io/badge/JavaScript-f7df1e?style=for-the-badge&logo=javascript&logoColor=black)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=for-the-badge)](http://makeapullrequest.com)
-[![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg?style=for-the-badge)](https://GitHub.com/Naereen/StrapDown.js/graphs/commit-activity)
 
 **A comprehensive Flask-based web application that helps students organize their study plans using advanced algorithms and data structures. Intelliplan combines modern web technologies with computer science algorithms to optimize study schedules and enhance learning efficiency.**
 
@@ -410,8 +407,5 @@ For questions, suggestions, or support, please open an issue on GitHub or contac
 ## 🎉 Happy Studying! 📚✨
 
 [![Made with ❤️](https://img.shields.io/badge/Made%20with-❤️-red?style=for-the-badge)](https://github.com/yourusername/intelliplan)
-[![Star this repo](https://img.shields.io/badge/⭐-Star%20this%20repo-yellow?style=for-the-badge)](https://github.com/yourusername/intelliplan)
-
-**If you found this project helpful, please consider giving it a ⭐!**
 
 </div>
