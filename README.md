@@ -232,16 +232,6 @@ Use the ngrok scripts in the `NGROK/` folder to enable access from other devices
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-## 📝 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- Flask documentation and community
-- Algorithm design inspiration from competitive programming
-- Open source libraries that made this project possible
-
 ## 📧 Contact
 
 For questions, suggestions, or support, please open an issue on GitHub or contact the maintainer.
