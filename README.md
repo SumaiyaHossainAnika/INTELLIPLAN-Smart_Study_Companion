@@ -404,6 +404,4 @@ For questions, suggestions, or support, please open an issue on GitHub or contac
 
 ## 🎉 Happy Studying! 📚✨
 
-[![Made with ❤️](https://img.shields.io/badge/Made%20with-❤️-red?style=for-the-badge)](https://github.com/yourusername/intelliplan)
-
 </div>
