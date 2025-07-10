@@ -12,8 +12,6 @@
 
 **A comprehensive Flask-based web application that helps students organize their study plans using advanced algorithms and data structures. Intelliplan combines modern web technologies with computer science algorithms to optimize study schedules and enhance learning efficiency.**
 
-[📚 View Demo](http://localhost:5000) • [🐛 Report Bug](https://github.com/yourusername/intelliplan/issues) • [✨ Request Feature](https://github.com/yourusername/intelliplan/issues)
-
 </div>
 
 ---
